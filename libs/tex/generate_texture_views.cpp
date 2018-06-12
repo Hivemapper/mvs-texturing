@@ -163,9 +163,9 @@ from_images_and_camera_files(std::string const & path,
 
             image_file = util::fs::join_path(
                 tmp_dir,
-                util::fs::replace_extension(util::fs::basename(img_file), "png")
+                util::fs::replace_extension(util::fs::basename(img_file), "jpg")
             );
-            mve::image::save_png_file(image, image_file);
+            mve::image::save_jpg_file(image, image_file, 80);
         }
 
         #pragma omp critical
@@ -203,10 +203,10 @@ from_nvm_scene(std::string const & nvm_file,
             tmp_dir,
             util::fs::replace_extension(
                 util::fs::basename(nvm_cam.filename),
-                "png"
+                "jpg"
             )
         );
-        mve::image::save_png_file(image, image_file);
+        mve::image::save_jpg_file(image, image_file, 80);
 
         #pragma omp critical
         texture_views->push_back(TextureView(i, mve_cam, image_file));

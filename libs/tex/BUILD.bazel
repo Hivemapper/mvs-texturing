@@ -1,0 +1,9 @@
+cc_library(
+  name = "tex",
+  srcs = glob(["*.cpp"]),
+  hdrs = glob(["*.h"]),
+  deps = [
+    "//third_party/mve",
+  ],
+  visibility = ["//visibility:public"],
+)

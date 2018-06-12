@@ -299,8 +299,8 @@ TextureView::export_triangle(math::Vec3f v1, math::Vec3f v2, math::Vec3f v3,
     const int top = floor(aabb.max_y);
 
     assert(width > 0 && height > 0);
-    mve::image::save_png_file(mve::image::crop(image, width, height, left, top,
-        *math::Vec3uc(255, 0, 255)), filename);
+    mve::image::save_jpg_file(mve::image::crop(image, width, height, left, top,
+        *math::Vec3uc(255, 0, 255)), filename, 80);
 }
 
 void
@@ -310,7 +310,7 @@ TextureView::export_validity_mask(std::string const & filename) const {
     for (std::size_t i = 0; i < validity_mask.size(); ++i) {
         img->at(static_cast<int>(i), 0) = validity_mask[i] ? 255 : 0;
     }
-    mve::image::save_png_file(img, filename);
+    mve::image::save_jpg_file(img, filename, 80);
 }
 
 TEX_NAMESPACE_END

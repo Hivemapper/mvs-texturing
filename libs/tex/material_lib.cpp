@@ -27,7 +27,7 @@ MaterialLib::save_to_files(std::string const & prefix) const {
     std::string const name = util::fs::basename(prefix);
 
     for (Material const & material : *this) {
-        std::string diffuse_map_postfix = "_" + material.name + "_map_Kd.png";
+        std::string diffuse_map_postfix = "_" + material.name + "_map_Kd.jpg";
         out << "newmtl " << material.name << '\n'
             << "Ka 1.000000 1.000000 1.000000" << '\n'
             << "Kd 1.000000 1.000000 1.000000" << '\n'
@@ -40,7 +40,7 @@ MaterialLib::save_to_files(std::string const & prefix) const {
     out.close();
 
     for (Material const & material : *this) {
-        std::string filename = prefix + "_" + material.name + "_map_Kd.png";
-        mve::image::save_png_file(material.diffuse_map, filename);
+        std::string filename = prefix + "_" + material.name + "_map_Kd.jpg";
+        mve::image::save_jpg_file(material.diffuse_map, filename, 80);
     }
 }
