@@ -1,7 +1,7 @@
 file (GLOB HEADERS "*.h")
 file (GLOB SOURCES "[^_]*.cpp")
 
-set(LIBRARY mvs_texturing)
+set(LIBRARY mvs_tex)
 add_library(${LIBRARY} SHARED ${SOURCES})
 set_property(TARGET ${LIBRARY} PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
 add_dependencies(${LIBRARY} ext_mve ext_rayint ext_eigen ext_mapmap)

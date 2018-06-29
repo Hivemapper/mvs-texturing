@@ -2,8 +2,8 @@
 
 #include <string>
 
-namespace TextureWrapper {
+namespace MvsTexturing {
 
 std::string testFunc(int n);
 
-}
+}  // namespace MvsTexturing

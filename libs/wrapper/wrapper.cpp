@@ -1,12 +1,11 @@
-#include "texture_wrapper/wrapper.h"
+#include "wrapper/wrapper.h"
 
 #include "tex/util.h"
 
-namespace TextureWrapper {
+namespace MvsTexturing {
 
 std::string testFunc(int n) {
   return "BEHOLD: " + std::to_string(n) + number_suffix(n);
-  // return "foo";
 }
 
-}
+}  // namespace MvsTexturing
