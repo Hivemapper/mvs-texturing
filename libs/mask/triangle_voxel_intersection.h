@@ -16,6 +16,7 @@ struct Triangle3{
   Point3 v3;
 };
 
+// Returns true of t intersects the unit cube *centered* at the origin
 int triangleCellIntersection(Triangle3 t);
 
 }  // namespace TriangleCell
