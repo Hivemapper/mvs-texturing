@@ -59,9 +59,11 @@ photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Settings 
 
     Eigen::MatrixX3d inliers(infos->size(), 3);
     std::vector<std::uint32_t> is_inlier(infos->size(), 1);
+    std::cout << " - added - about to trigger mve stuff " << std::endl;
     for (std::size_t row = 0; row < infos->size(); ++row) {
         inliers.row(row) = mve_to_eigen(infos->at(row).mean_color).cast<double>();
     }
+    std::cout << " - added - triggered " << std::endl;
 
     Eigen::RowVector3d var_mean;
     Eigen::Matrix3d covariance;
@@ -89,11 +91,15 @@ photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Settings 
 
         /* Invert the covariance. FullPivLU is not the fastest way but
          * it gives feedback about numerical stability during inversion. */
+        std::cout << " - added - luing" << std::endl;
         Eigen::FullPivLU<Eigen::Matrix3d> lu(covariance);
+        std::cout << " - added - made lu" << std::endl;
         if (!lu.isInvertible()) {
             return false;
         }
+        std::cout << " - added - about to invert" << std::endl;
         covariance_inv = lu.inverse();
+        std::cout << " - added - lud " << std::endl;
 
         /* Compute new number of inliers (all views with a gauss value above a threshold). */
         for (std::size_t row = 0; row < infos->size(); ++row) {
@@ -101,6 +107,7 @@ photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Settings 
             double gauss_value = multi_gauss_unnormalized(color, var_mean, covariance_inv);
             is_inlier[row] = (gauss_value >= gauss_rejection_threshold ? 1 : 0);
         }
+        std::cout << " - added - updated inliers " << std::endl;
         /* Resize Eigen matrix accordingly and fill with new inliers. */
         inliers.resize(std::accumulate(is_inlier.begin(), is_inlier.end(), 0), Eigen::NoChange);
         for (std::size_t row = 0, inlier_row = 0; row < infos->size(); ++row) {
@@ -108,12 +115,16 @@ photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Settings 
                 inliers.row(inlier_row++) = mve_to_eigen(infos->at(row).mean_color).cast<double>();
             }
         }
+        std::cout << " - added - accumulated" << std::endl;
     }
 
+    std::cout << " - added - final conversion" << std::endl;
     covariance_inv *= outlier_removal_factor;
     for (FaceProjectionInfo & info : *infos) {
         Eigen::RowVector3d color = mve_to_eigen(info.mean_color).cast<double>();
+        std::cout << " - added - multigauss" << std::endl;
         double gauss_value = multi_gauss_unnormalized(color, var_mean, covariance_inv);
+        std::cout << " - added - asserting" << std::endl;
         assert(0.0 <= gauss_value && gauss_value <= 1.0);
         switch(settings.outlier_removal) {
             case OUTLIER_REMOVAL_NONE: return true;
@@ -124,7 +135,9 @@ photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Settings 
                 if (gauss_value < gauss_rejection_threshold) info.quality = 0.0f;
             break;
         }
+        std::cout << " - added - next" << std::endl;
     }
+    std::cout << " - added - returning" << std::endl;
     return true;
 }
 
@@ -248,32 +261,39 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
             projected_face_view_infos.clear();
         }
     }
+    std::cout << " - added - FP COMPLETE" << std::endl;
 }
 
 void
 postprocess_face_infos(Settings const & settings,
         FaceProjectionInfos * face_projection_infos,
         DataCosts * data_costs) {
-
+    std::cout << " - added - Postprocessing" << std::endl;
     ProgressCounter face_counter("\tPostprocessing face infos",
         face_projection_infos->size());
+
+    std::cout << "- added - PP2" << std::endl;
     #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < face_projection_infos->size(); ++i) {
         face_counter.progress<SIMPLE>();
 
         std::vector<FaceProjectionInfo> & infos = face_projection_infos->at(i);
         if (settings.outlier_removal != OUTLIER_REMOVAL_NONE) {
+            std::cout << "- added - starting outlier detection" << std::endl;
             photometric_outlier_detection(&infos, settings);
-
+            std::cout << "- added - completed outlier detection" << std::endl;
             infos.erase(std::remove_if(infos.begin(), infos.end(),
                 [](FaceProjectionInfo const & info) -> bool {return info.quality == 0.0f;}),
                 infos.end());
+            std::cout << "- added - erased" << std::endl;
         }
         std::sort(infos.begin(), infos.end());
 
         face_counter.inc();
+        std::cout << "- added - looping" << std::endl;
     }
 
+    std::cout << "- added - normalizing" << std::endl;
     /* Determine the function for the normlization. */
     float max_quality = 0.0f;
     for (std::size_t i = 0; i < face_projection_infos->size(); ++i)
@@ -319,6 +339,7 @@ calculate_data_costs(mve::TriangleMesh::ConstPtr mesh, std::vector<TextureView> 
 
     FaceProjectionInfos face_projection_infos(num_faces);
     calculate_face_projection_infos(mesh, texture_views, settings, &face_projection_infos);
+    std::cout << "- added - Postprocessing - first" << std::endl;
     postprocess_face_infos(settings, &face_projection_infos, data_costs);
 }
 
