@@ -31,6 +31,8 @@ class EuclideanViewMask {
                          std::vector<std::vector<int>>& voxels) const;
 
   int countCells() const;
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
  private:
   Eigen::Matrix<double, 3, 1> vmin;
   Eigen::Matrix<double, 3, 3> coord_transform;

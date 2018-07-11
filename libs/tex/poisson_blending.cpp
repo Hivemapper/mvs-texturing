@@ -74,10 +74,10 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
 
     std::vector<math::Vec3f> coefficients_b;
     coefficients_b.resize(nnz);
-
-    std::vector<Eigen::Triplet<float, int> > coefficients_A;
+    std::cout << "blend 0 " << std::endl;
+    std::vector<Eigen::Triplet<float, int>, Eigen::aligned_allocator<Eigen::Triplet<float, int>> > coefficients_A;
     coefficients_A.reserve(nnz); //TODO better estimate...
-
+    std::cout << "blend A " << std::endl;
     for (int i = 0; i < n; ++i) {
         const int row = indices->at(i);
         if (mask->at(i) == 128 || mask->at(i) == 64) {
@@ -115,13 +115,15 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
             coefficients_b[row] = (alpha * l_s + (1.0f - alpha) * l_d);
         }
     }
-
+    std::cout << "blend B " << std::endl;
     SpMat A(nnz, nnz);
     A.setFromTriplets(coefficients_A.begin(), coefficients_A.end());
-
+    std::cout << "blend C " << std::endl;
     Eigen::SparseLU<SpMat, Eigen::COLAMDOrdering<int> > solver;
+    std::cout << "blend Cp " << std::endl;
+    std::cout << nnz << std::endl;
     solver.compute(A);
-
+    std::cout << "blend D " << std::endl;
     for (int channel = 0; channel < channels; ++channel) {
         Eigen::VectorXf b(nnz);
         for (std::size_t i = 0; i < coefficients_b.size(); ++i)
@@ -135,4 +137,5 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
             if (index != -1) dest->at(i, channel) = x[index];
         }
     }
+    std::cout << "blend E " << std::endl;
 }

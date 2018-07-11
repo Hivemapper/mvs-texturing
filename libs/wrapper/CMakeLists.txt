@@ -1,6 +1,7 @@
 file (GLOB HEADERS "*.h")
 file (GLOB SOURCES "*.cpp")
 
+
 set(LIBRARY mvs_tex_wrapper)
 add_library(${LIBRARY} STATIC SHARED ${SOURCES})
 #add_dependencies(${LIBRARY} mvs_tex)

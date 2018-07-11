@@ -180,7 +180,7 @@ global_seam_leveling(UniGraph const & graph, mve::TriangleMesh::ConstPtr mesh,
 
     /* Fill the Tikhonov matrix Gamma(regularization constraints). */
     std::size_t Gamma_row = 0;
-    std::vector<Eigen::Triplet<float, int> > coefficients_Gamma;
+    std::vector<Eigen::Triplet<float, int>, Eigen::aligned_allocator<Eigen::Triplet<float, int>> > coefficients_Gamma;
     coefficients_Gamma.reserve(2 * num_vertices);
     for (std::size_t i = 0; i < num_vertices; ++i) {
         for (std::size_t j = 0; j < labels[i].size(); ++j) {
@@ -208,7 +208,7 @@ global_seam_leveling(UniGraph const & graph, mve::TriangleMesh::ConstPtr mesh,
     Gamma.setFromTriplets(coefficients_Gamma.begin(), coefficients_Gamma.end());
 
     /* Fill the matrix A and the coefficients for the Vector b of the linear equation system. */
-    std::vector<Eigen::Triplet<float, int> > coefficients_A;
+    std::vector<Eigen::Triplet<float, int>, Eigen::aligned_allocator<Eigen::Triplet<float, int>> > coefficients_A;
     std::vector<math::Vec3f> coefficients_b;
     std::size_t A_row = 0;
     for (std::size_t i = 0; i < num_vertices; ++i) {

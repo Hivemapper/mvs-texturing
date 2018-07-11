@@ -20,19 +20,19 @@ externalproject_add(ext_rayint
     INSTALL_COMMAND ""
 )
 
-externalproject_add(ext_eigen
-    PREFIX          ext_eigen
-    URL             https://bitbucket.org/eigen/eigen/get/3.3.2.tar.gz
-    URL_MD5         36b5731ab7d7e0c10843ac93bd9fd270
-    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/elibs/eigen
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND   ""
-    INSTALL_COMMAND ""
-)
+#externalproject_add(ext_eigen
+#    PREFIX          ext_eigen
+#    URL             https://bitbucket.org/eigen/eigen/get/3.3.2.tar.gz
+#    URL_MD5         36b5731ab7d7e0c10843ac93bd9fd270
+#    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/elibs/eigen
+#    CONFIGURE_COMMAND ""
+#    BUILD_COMMAND   ""
+#    INSTALL_COMMAND ""
+#)
 
 externalproject_add(ext_mve
     PREFIX          mve
-    GIT_REPOSITORY  https://github.com/nmoehrle/mve.git
+    GIT_REPOSITORY  https://github.com/simonfuhrmann/mve.git
     GIT_TAG         189e042416b7018b9d454b359a1d5aab68f670f0
     UPDATE_COMMAND  ""
     SOURCE_DIR      ${CMAKE_SOURCE_DIR}/elibs/mve

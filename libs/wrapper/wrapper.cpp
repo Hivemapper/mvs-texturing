@@ -26,6 +26,20 @@ std::string testFunc(int n) {
 
 
 void textureMesh(const std::string& in_scene, const std::string& in_mesh, const std::string& out_prefix) {
+
+    std::cout << EIGEN_WORLD_VERSION << std::endl;
+  std::cout << EIGEN_MAJOR_VERSION << std::endl;
+  std::cout << EIGEN_MINOR_VERSION << std::endl;
+  #ifdef EIGEN_DONT_VECTORIZE
+    std::cout << "Dont Vectorize" << std::endl;
+  #endif
+  #ifdef EIGEN_DONT_ALIGN
+    std::cout << "Dont Align" << std::endl;
+  #endif
+  #ifdef EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+    std::cout << "Dont Array" << std::endl;
+  #endif
+    
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
@@ -107,7 +121,8 @@ void textureMesh(const std::string& in_scene, const std::string& in_mesh, const 
     settings.global_seam_leveling = true;
     settings.local_seam_leveling = true;
     settings.hole_filling = true;
-    settings.keep_unseen_faces = false;
+    // settings.hole_filling = false;
+    settings.keep_unseen_faces = true;
 
     if (labeling_file.empty()) {
         std::cout << "View selection:" << std::endl;

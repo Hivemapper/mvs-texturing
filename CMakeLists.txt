@@ -18,7 +18,7 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE_BACKUP})
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED yes)
-add_definitions(-DEIGEN_MPL2_ONLY)
+#add_definitions(-DEIGEN_MPL2_ONLY)
 
 FIND_PACKAGE(OpenMP)
 if(OPENMP_FOUND)
@@ -28,8 +28,10 @@ if(OPENMP_FOUND)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -Wundef -pedantic")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -funroll-loops")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -Wundef -pedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Wall -Wextra -Wundef -pedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -DEIGEN_DONT_VECTORIZE -DEIGEN_DONT_ALIGN -DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT")
 endif()
 
 find_package(PNG REQUIRED)
@@ -38,9 +40,10 @@ find_package(TIFF REQUIRED)
 
 add_subdirectory(elibs)
 include_directories(SYSTEM
+    /usr/local/include/eigen3
     ${CMAKE_SOURCE_DIR}/elibs/rayint/libs
     ${CMAKE_SOURCE_DIR}/elibs/mve/libs
-    ${CMAKE_SOURCE_DIR}/elibs/eigen
+    #${CMAKE_SOURCE_DIR}/elibs/eigen
     ${CMAKE_SOURCE_DIR}/elibs/mapmap/
     ${CMAKE_SOURCE_DIR}/elibs/mapmap/mapmap
 )
