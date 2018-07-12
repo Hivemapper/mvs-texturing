@@ -180,29 +180,29 @@ local_seam_leveling(UniGraph const & graph, mve::TriangleMesh::ConstPtr mesh,
     for (std::size_t i = 0; i < texture_patches->size(); ++i) {
         TexturePatch::Ptr texture_patch = texture_patches->at(i);
         mve::FloatImage::Ptr image = texture_patch->get_image()->duplicate();
-        std::cout << "color " << i << std::endl;
+        // std::cout << "color " << i << std::endl;
         /* Apply colors. */
         for (Pixel const & pixel : pixels[i]) {
             texture_patch->set_pixel_value(pixel.pos, *pixel.color);
         }
-        std::cout << "draw" << i << std::endl;
+        // std::cout << "draw" << i << std::endl;
         for (Line const & line : lines[i]) {
             draw_line(line.from, line.to, *line.color, texture_patch);
         }
 
         texture_patch_counter.progress<SIMPLE>();
-        std::cout << "prep " << i << std::endl;
+        // std::cout << "prep " << i << std::endl;
         /* Only alter a small strip of texture patches originating from input images. */
         if (texture_patch->get_label() != 0) {
             texture_patch->prepare_blending_mask(STRIP_SIZE);
         }
-        std::cout << "blend " << i << std::endl;
+        // std::cout << "blend " << i << std::endl;
         texture_patch->blend(image);
-        std::cout << "release " << i << std::endl;
+        // std::cout << "release " << i << std::endl;
         texture_patch->release_blending_mask();
-        std::cout << "tic " << i << std::endl;
+        // std::cout << "tic " << i << std::endl;
         texture_patch_counter.inc();
-        std::cout << "loop " << i << std::endl;
+        // std::cout << "loop " << i << std::endl;
     }
 }
 

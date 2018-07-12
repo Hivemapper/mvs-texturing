@@ -20,6 +20,7 @@ class EuclideanViewMask {
   bool isValidVector(const Eigen::Matrix<double, 3, 1>& v) const;
 
   const std::set<uint16_t>& operator[](const std::vector<int>& xyz) const;
+  bool contains(const std::vector<int>& xyz, int i) const;
   // const std::set<uint16_t>& operator[](int x, int y, int z) const;
 
   void insert(const Eigen::Matrix<double, 3, 1>& v, uint16_t i);
@@ -31,6 +32,11 @@ class EuclideanViewMask {
                          std::vector<std::vector<int>>& voxels) const;
 
   int countCells() const;
+
+
+  void convertToPoints(std::vector<Eigen::Matrix<double, 3, 1>>& points, int cell_subdivisions = 0) const;
+
+  Eigen::Matrix<double, 3, 1> getCellSize() const;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
  private:

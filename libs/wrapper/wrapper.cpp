@@ -25,21 +25,7 @@ std::string testFunc(int n) {
 }
 
 
-void textureMesh(const std::string& in_scene, const std::string& in_mesh, const std::string& out_prefix) {
-
-    std::cout << EIGEN_WORLD_VERSION << std::endl;
-  std::cout << EIGEN_MAJOR_VERSION << std::endl;
-  std::cout << EIGEN_MINOR_VERSION << std::endl;
-  #ifdef EIGEN_DONT_VECTORIZE
-    std::cout << "Dont Vectorize" << std::endl;
-  #endif
-  #ifdef EIGEN_DONT_ALIGN
-    std::cout << "Dont Align" << std::endl;
-  #endif
-  #ifdef EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
-    std::cout << "Dont Array" << std::endl;
-  #endif
-    
+void textureMesh(const std::string& in_scene, const std::string& in_mesh, const std::string& out_prefix, std::shared_ptr<EuclideanViewMask> ev_mask) {
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
@@ -116,7 +102,6 @@ void textureMesh(const std::string& in_scene, const std::string& in_mesh, const 
     //
     tex::Settings settings;
     settings.outlier_removal = tex::OUTLIER_REMOVAL_GAUSS_CLAMPING;
-
     settings.geometric_visibility_test = true;  // may be better without?
     settings.global_seam_leveling = true;
     settings.local_seam_leveling = true;
@@ -130,8 +115,8 @@ void textureMesh(const std::string& in_scene, const std::string& in_mesh, const 
 
         tex::DataCosts data_costs(num_faces, texture_views.size());
         if (data_cost_file.empty()) {
-            std::cout << "- added - Calculating Data costs" << std::endl;
-            tex::calculate_data_costs(mesh, &texture_views, settings, &data_costs);
+            // std::cout << "- added - Calculating Data costs" << std::endl;
+            tex::calculate_data_costs(mesh, &texture_views, settings, &data_costs, ev_mask);
 
             if (write_intermediate_results) {
                 std::cout << "\tWriting data cost file... " << std::flush;

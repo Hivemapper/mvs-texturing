@@ -180,7 +180,7 @@ bool fill_hole(std::vector<std::size_t> const & hole, UniGraph const & graph,
 
     bool disk_topology = true;
     std::map<std::size_t, std::set<std::size_t> >::iterator it = tmp.begin();
-    std::cout << " A " <<std::endl;
+    // std::cout << " A " <<std::endl;
     for (std::size_t j = 0; j < num_vertices; ++j, ++it) {
         std::size_t vertex_id = it->first;
         g2l[vertex_id] = j;
@@ -245,7 +245,7 @@ bool fill_hole(std::vector<std::size_t> const & hole, UniGraph const & graph,
         }
     }
 
-    std::cout << " B " <<std::endl;
+    // std::cout << " B " <<std::endl;
     tmp.clear();
 
     /* No disk or genus zero topology */
@@ -278,7 +278,7 @@ bool fill_hole(std::vector<std::size_t> const & hole, UniGraph const & graph,
         if (border.size() > num_border_vertices) break;
     }
 
-    std::cout << " C " <<std::endl;
+    // std::cout << " C " <<std::endl;
 
     if (border.size() != num_border_vertices) return false;
 
@@ -330,7 +330,7 @@ bool fill_hole(std::vector<std::size_t> const & hole, UniGraph const & graph,
             length += (v0 - v1).norm();
         }
     }
-    std::cout << " D " <<std::endl;
+    // std::cout << " D " <<std::endl;
 
     typedef Eigen::Triplet<float, int> Triplet;
     std::vector<Triplet, Eigen::aligned_allocator<Triplet>> coeff;
@@ -338,13 +338,13 @@ bool fill_hole(std::vector<std::size_t> const & hole, UniGraph const & graph,
 
     Eigen::VectorXf xx(matrix_size), xy(matrix_size);
 
-    std::cout << " D2 " <<std::endl;
+    // std::cout << " D2 " <<std::endl;
 
     if (matrix_size != 0) {
-        std::cout << " D2 - aa" <<std::endl;
+        // std::cout << " D2 - aa" <<std::endl;
         Eigen::VectorXf bx(matrix_size);
         Eigen::VectorXf by(matrix_size);
-        std::cout << " D2 - a" <<std::endl;
+        // std::cout << " D2 - a" <<std::endl;
         for (std::size_t j = 0; j < num_vertices; ++j) {
             if (is_border[j]) continue;
 
@@ -374,7 +374,7 @@ bool fill_hole(std::vector<std::size_t> const & hole, UniGraph const & graph,
                 weights[g2l[v1]] += std::tan(alpha / 2.0f) / (v01n / 2.0f);
                 weights[g2l[v2]] += std::tan(alpha / 2.0f) / (v02n / 2.0f);
             }
-            std::cout << " D2 - " << j <<std::endl;
+            // std::cout << " D2 - " << j <<std::endl;
             std::map<std::size_t, float>::iterator it;
             float sum = 0.0f;
             for (it = weights.begin(); it != weights.end(); ++it)
@@ -402,23 +402,23 @@ bool fill_hole(std::vector<std::size_t> const & hole, UniGraph const & graph,
         }
 
         typedef Eigen::SparseMatrix<float> SpMat;
-        std::cout << " D2 - b" <<std::endl;
+        // std::cout << " D2 - b" <<std::endl;
         SpMat A(matrix_size, matrix_size);
         A.setFromTriplets(coeff.begin(), coeff.end());
-        std::cout << " D2 - c " <<std::endl;
+        // std::cout << " D2 - c " <<std::endl;
 
         Eigen::SparseLU<SpMat> solver;
-        std::cout << " D2 - d " <<std::endl;
+        // std::cout << " D2 - d " <<std::endl;
         solver.analyzePattern(A);
-        std::cout << " D2 - d1 " <<std::endl;
+        // std::cout << " D2 - d1 " <<std::endl;
         solver.factorize(A);
-        std::cout << " D2 - d2 " <<std::endl;
+        // std::cout << " D2 - d2 " <<std::endl;
         xx = solver.solve(bx);
         xy = solver.solve(by);
-        std::cout << " D2 - e " <<std::endl;
+        // std::cout << " D2 - e " <<std::endl;
     }
 
-    std::cout << " E " <<std::endl;
+    // std::cout << " E " <<std::endl;
 
     float const max_hole_patch_size = MAX_HOLE_PATCH_SIZE;
     int image_size = std::min(std::floor(radius * 1.1f) * 2.0f, max_hole_patch_size);
@@ -487,7 +487,7 @@ generate_texture_patches(UniGraph const & graph, mve::TriangleMesh::ConstPtr mes
     std::cout << "\tRunning... " << std::flush;
     #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < texture_views->size(); ++i) {
-        std::cout << i << std::endl;
+        // std::cout << i << std::endl;
         std::vector<std::vector<std::size_t> > subgraphs;
         int const label = i + 1;
         graph.get_subgraphs(label, &subgraphs);
@@ -553,19 +553,19 @@ generate_texture_patches(UniGraph const & graph, mve::TriangleMesh::ConstPtr mes
             }
         }
     }
-    std::cout << "Merging... " << std::endl;
+    // std::cout << "Merging... " << std::endl;
     merge_vertex_projection_infos(vertex_projection_infos);
-    std::cout << "Merged " << std::endl;
+    // std::cout << "Merged " << std::endl;
     {
         std::vector<std::size_t> unseen_faces;
         std::vector<std::vector<std::size_t> > subgraphs;
         graph.get_subgraphs(0, &subgraphs);
 
-        std::cout << "filling holes " << subgraphs.size() << std::endl;
+        // std::cout << "filling holes " << subgraphs.size() << std::endl;
         // #pragma omp parallel for schedule(dynamic)
         for (std::size_t i = 0; i < subgraphs.size(); ++i) {
             std::vector<std::size_t> const & subgraph = subgraphs[i];
-            std::cout << i << std::endl;
+            // std::cout << i << std::endl;
             bool success = false;
             if (settings.hole_filling) {
                 success = fill_hole(subgraph, graph, mesh, mesh_info,
@@ -586,8 +586,8 @@ generate_texture_patches(UniGraph const & graph, mve::TriangleMesh::ConstPtr mes
             // std::cout << i << " complete" << std::endl;
         }
 
-        std::cout << "creating patches" << std::endl;
-        std::cout << "creating patches" << std::endl;
+        // std::cout << "creating patches" << std::endl;
+        // std::cout << "creating patches" << std::endl;
         if (!unseen_faces.empty()) {
             mve::FloatImage::Ptr image = mve::FloatImage::create(3, 3, 3);
             std::vector<math::Vec2f> texcoords;
@@ -614,7 +614,7 @@ generate_texture_patches(UniGraph const & graph, mve::TriangleMesh::ConstPtr mes
             }
         }
     }
-    std::cout << "Merging again... " << std::endl;
+    // std::cout << "Merging again... " << std::endl;
     merge_vertex_projection_infos(vertex_projection_infos);
 
     std::cout << "done. (Took " << timer.get_elapsed_sec() << "s)" << std::endl;

@@ -14,6 +14,7 @@
 
 #include "mve/mesh.h"
 #include "mve/mesh_info.h"
+#include "mvs_tex/mask/euclidean_view_mask.h"
 
 #include "defines.h"
 #include "settings.h"
@@ -66,7 +67,7 @@ build_adjacency_graph(mve::TriangleMesh::ConstPtr mesh,
 void
 calculate_data_costs(mve::TriangleMesh::ConstPtr mesh,
     TextureViews * texture_views, Settings const & settings,
-    DataCosts * data_costs);
+    DataCosts * data_costs, std::shared_ptr<MvsTexturing::EuclideanViewMask> ev_mask);
 
 void
 postprocess_face_infos(Settings const & settings,

@@ -75,6 +75,21 @@ const set<uint16_t>& EuclideanViewMask::operator[](const vector<int>& xyz) const
     throw;
 }
 
+/**
+ * @brief const membership checker
+ */
+bool EuclideanViewMask::contains(const vector<int>& xyz, int i) const {
+  if (isValidXy(xyz[0], xyz[1])) {
+    if (mask_data[xyz[0]][xyz[1]].count(xyz[2]))
+      return mask_data[xyz[0]][xyz[1]].at(xyz[2]).count(i);
+    else
+      return false;
+  } else {
+    return false;
+  }
+}
+
+
 void EuclideanViewMask::insert(const Eigen::Matrix<double, 3, 1>& v, uint16_t i) {
   set<uint16_t>& voxel = get(getVoxelIndex(v));
   voxel.insert(i);
@@ -95,8 +110,8 @@ void EuclideanViewMask::insert(const Eigen::Matrix<double, 3, 1>& v,  const set<
 void EuclideanViewMask::getTriangleVoxels(const vector<Eigen::Matrix<double, 3, 1>>& vertices,
                                           vector<vector<int>>& voxels) const {
   assert(vertices.size() == 3);
-  vector<int> mins(3, INFINITY);
-  vector<int> maxes(3, -INFINITY);
+  vector<int> mins(3, INT_MAX);
+  vector<int> maxes(3, -INT_MIN);
   // compute bounding box
   for (int i = 0; i < 3; ++i) {
     vector<int> vv = getVoxelIndex(vertices[i]);
@@ -131,8 +146,59 @@ int EuclideanViewMask::countCells() const {
   }
   return sum;
 }
-void EuclideanViewMask::dilate(int iterations) {
 
+Eigen::Matrix<double, 3, 1> EuclideanViewMask::getCellSize() const {
+  return coord_transform.inverse()*Eigen::Matrix<double, 3, 1>(1.0, 1.0, 1.0);
+}
+
+
+void EuclideanViewMask::convertToPoints(std::vector<Eigen::Matrix<double, 3, 1>>& points, int cell_subdivisions) const {
+  int nx = mask_data.size();
+  int ny = mask_data[0].size();
+  points.clear();
+  Eigen::Matrix<double, 3, 1> cell_size = getCellSize();
+  for (int i = 0; i < nx; ++i) {
+    for (int j = 0; j < ny; ++j) {
+      for (const auto& cell : mask_data[i][j]) {
+        points.push_back(Eigen::Matrix<double, 3, 1>(cell_size[0]*i + vmin[0],
+                                                     cell_size[1]*j + vmin[1],
+                                                     cell_size[2]*cell.first + vmin[2]));
+
+      }
+    }
+  }
+}
+
+void EuclideanViewMask::dilate(int iterations) {
+  int nx = mask_data.size();
+  int ny = mask_data[0].size();
+  int new_nx = nx + 2*iterations;
+  int new_ny = ny + 2*iterations;
+
+  std::vector<std::vector<std::map<int, std::set<uint16_t>>>> new_mask_data;
+  new_mask_data.resize(new_nx);
+  for (int i = 0; i < new_nx; ++i) {
+    new_mask_data[i].resize(new_ny);
+  }
+
+  for (int i = 0; i < nx; ++i) {
+    for (int j = 0; j < ny; ++j) {
+      for (const auto& cell : mask_data[i][j]) {
+        for (int ii = 0; ii <= 2*iterations; ++ii) {
+          for (int jj = 0; jj <= 2*iterations; ++jj) {
+            for (int kk = 0; kk <= 2*iterations; ++kk) {
+              for (uint16_t frame : cell.second) {
+                new_mask_data[i+ii][j+jj][cell.first + kk].insert(frame);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  mask_data = new_mask_data;
+  vmin = vmin - iterations*getCellSize();
 }
 
 }  // namespace MvsTexturing

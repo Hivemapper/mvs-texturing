@@ -153,7 +153,7 @@ bool photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Sett
 void
 calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
     std::vector<TextureView> * texture_views, Settings const & settings,
-    FaceProjectionInfos * face_projection_infos) {
+    FaceProjectionInfos * face_projection_infos, std::shared_ptr<MvsTexturing::EuclideanViewMask> ev_mask) {
 
     std::vector<unsigned int> const & faces = mesh->get_faces();
     std::vector<math::Vec3f> const & vertices = mesh->get_vertices();
@@ -161,6 +161,7 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
 
     std::size_t const num_views = texture_views->size();
 
+    std::cout << num_views << " Texture Views" << std::endl;
     util::WallTimer timer;
     std::cout << "\tBuilding BVH from " << faces.size() / 3 << " faces... " << std::flush;
     BVHTree bvh_tree(faces, vertices);
@@ -173,7 +174,7 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
 
         #pragma omp for schedule(dynamic)
         for (std::uint16_t j = 0; j < static_cast<std::uint16_t>(num_views); ++j) {
-            std::cout << j << std::endl;
+            // std::cout << j << std::endl;
             view_counter.progress<SIMPLE>();
 
             TextureView * texture_view = &texture_views->at(j);
@@ -189,6 +190,7 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
             math::Vec3f const & viewing_direction = texture_view->get_viewing_direction();
 
             for (std::size_t i = 0; i < faces.size(); i += 3) {
+
                 std::size_t face_id = i / 3;
 
                 math::Vec3f const & v1 = vertices[faces[i]];
@@ -244,6 +246,19 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
 
                 if (info.quality == 0.0) continue;
 
+                                // check the euclidean mask if provided
+                if (ev_mask) {
+                    std::vector<int> voxel_index = ev_mask->getVoxelIndex(Eigen::Vector3d(v1[0], v1[1], v1[2]));
+                    if (ev_mask->contains(voxel_index, texture_view->get_id())) {
+                        // std::cout << voxel_index[0] << ",\t" << voxel_index[1] << ",\t" << voxel_index[2] 
+                        //     << "\t--" << j << "\t-- Found overlap " << std::endl;
+                    } else {
+                        // std::cout << voxel_index[0] << ", " << voxel_index[1] << ", " << voxel_index[2] 
+                        //     << " -- " << j << " -- Rejecting " << std::endl;
+                        continue;
+                    }
+                }
+
                 /* Change color space. */
                 mve::image::color_rgb_to_ycbcr(*(info.mean_color));
 
@@ -271,7 +286,6 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
             projected_face_view_infos.clear();
         }
     }
-    // std::cout << " - added - FP COMPLETE" << std::endl;
 }
 
 void
@@ -337,19 +351,7 @@ postprocess_face_infos(Settings const & settings,
 
 void
 calculate_data_costs(mve::TriangleMesh::ConstPtr mesh, std::vector<TextureView> * texture_views,
-    Settings const & settings, DataCosts * data_costs) {
-    std::cout << EIGEN_WORLD_VERSION << std::endl;
-    std::cout << EIGEN_MAJOR_VERSION << std::endl;
-    std::cout << EIGEN_MINOR_VERSION << std::endl;
-    #ifdef EIGEN_DONT_VECTORIZE
-    std::cout << "Dont Vectorize" << std::endl;
-  #endif
-  #ifdef EIGEN_DONT_ALIGN
-    std::cout << "Dont Align" << std::endl;
-  #endif
-  #ifdef EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
-    std::cout << "Dont Array" << std::endl;
-  #endif
+    Settings const & settings, DataCosts * data_costs, std::shared_ptr<MvsTexturing::EuclideanViewMask> ev_mask) {
     std::size_t const num_faces = mesh->get_faces().size() / 3;
     std::size_t const num_views = texture_views->size();
 
@@ -359,8 +361,8 @@ calculate_data_costs(mve::TriangleMesh::ConstPtr mesh, std::vector<TextureView> 
         throw std::runtime_error("Exeeded maximal number of views");
 
     FaceProjectionInfos face_projection_infos(num_faces);
-    calculate_face_projection_infos(mesh, texture_views, settings, &face_projection_infos);
-    std::cout << "- added - Postprocessing - first" << std::endl;
+    calculate_face_projection_infos(mesh, texture_views, settings, &face_projection_infos, ev_mask);
+    // std::cout << "- added - Postprocessing - first" << std::endl;
     postprocess_face_infos(settings, &face_projection_infos, data_costs);
 }
 

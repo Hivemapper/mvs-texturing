@@ -1,8 +1,6 @@
 file (GLOB HEADERS "*.h")
 file (GLOB SOURCES "[^_]*.cpp")
 
-include_directories(/usr/local/include/eigen3)
-
 set(BIN texrecon)
 
 add_executable(${BIN} ${SOURCES})
