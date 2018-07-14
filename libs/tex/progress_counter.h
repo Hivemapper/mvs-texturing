@@ -46,43 +46,43 @@ ProgressCounter::ProgressCounter(std::string const & _task, std::size_t _max)
 
 inline void
 ProgressCounter::inc(void) {
-    std::size_t tmp;
-    tmp = ++count;
+    // std::size_t tmp;
+    // tmp = ++count;
 
-    if(tmp == max) {
-        std::stringstream ss;
-        ss << clear << task << " 100%... done. (Took "
-            << timer.get_elapsed_sec() << "s)";
-        #pragma omp critical(progress_counter_inc)
-        std::cout << ss.rdbuf() << std::endl;
-    }
+    // if(tmp == max) {
+    //     std::stringstream ss;
+    //     ss << clear << task << " 100%... done. (Took "
+    //         << timer.get_elapsed_sec() << "s)";
+    //     #pragma omp critical(progress_counter_inc)
+    //     std::cout << ss.rdbuf() << std::endl;
+    // }
 }
 
 inline void
 ProgressCounter::reset(std::string const & _task) {
-    timer.reset();
-    count = 0;
-    task = _task;
+    // timer.reset();
+    // count = 0;
+    // task = _task;
 }
 
 template <ProgressCounterStyle T> void
 ProgressCounter::progress(void) {
-    if ((max > 100 && count % (max / 100) == 0) || max <= 100) {
-        float percent = static_cast<float>(count) / max;
-        int ipercent = std::floor(percent * 100.0f + 0.5f);
+    // if ((max > 100 && count % (max / 100) == 0) || max <= 100) {
+    //     float percent = static_cast<float>(count) / max;
+    //     int ipercent = std::floor(percent * 100.0f + 0.5f);
 
-        std::stringstream ss;
-        ss << clear << task << " " << ipercent << "%...";
+    //     std::stringstream ss;
+    //     ss << clear << task << " " << ipercent << "%...";
 
-        if (T == ETA && ipercent > 3){
-            std::size_t const elapsed = timer.get_elapsed();
-            std::size_t eta = (elapsed / percent - elapsed) / 1000;
-            ss << " eta ~ " << eta << " s";
-        }
+    //     if (T == ETA && ipercent > 3){
+    //         std::size_t const elapsed = timer.get_elapsed();
+    //         std::size_t eta = (elapsed / percent - elapsed) / 1000;
+    //         ss << " eta ~ " << eta << " s";
+    //     }
 
-        #pragma omp critical(progress_counter_progress)
-        tty << ss.rdbuf() << std::flush;
-    }
+    //     #pragma omp critical(progress_counter_progress)
+    //     tty << ss.rdbuf() << std::flush;
+    // }
 }
 
 #endif /* TEX_PROGRESSCOUNTER_HEADER */
