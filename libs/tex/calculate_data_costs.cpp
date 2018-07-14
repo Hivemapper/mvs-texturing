@@ -194,10 +194,19 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
                 std::size_t face_id = i / 3;
 
                 math::Vec3f const & v1 = vertices[faces[i]];
+
                 math::Vec3f const & v2 = vertices[faces[i + 1]];
                 math::Vec3f const & v3 = vertices[faces[i + 2]];
                 math::Vec3f const & face_normal = face_normals[face_id];
                 math::Vec3f const face_center = (v1 + v2 + v3) / 3.0f;
+
+                // check the euclidean mask if provided
+                if (ev_mask) {
+                    if (!ev_mask->contains(
+                            ev_mask->getVoxelIndex(Eigen::Vector3d(face_center[0], face_center[1], face_center[2])),
+                            texture_view->get_id()))
+                        continue;
+                }
 
                 /* Check visibility and compute quality */
 
@@ -245,19 +254,6 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
                 texture_view->get_face_info(v1, v2, v3, &info, settings);
 
                 if (info.quality == 0.0) continue;
-
-                                // check the euclidean mask if provided
-                if (ev_mask) {
-                    std::vector<int> voxel_index = ev_mask->getVoxelIndex(Eigen::Vector3d(v1[0], v1[1], v1[2]));
-                    if (ev_mask->contains(voxel_index, texture_view->get_id())) {
-                        // std::cout << voxel_index[0] << ",\t" << voxel_index[1] << ",\t" << voxel_index[2] 
-                        //     << "\t--" << j << "\t-- Found overlap " << std::endl;
-                    } else {
-                        // std::cout << voxel_index[0] << ", " << voxel_index[1] << ", " << voxel_index[2] 
-                        //     << " -- " << j << " -- Rejecting " << std::endl;
-                        continue;
-                    }
-                }
 
                 /* Change color space. */
                 mve::image::color_rgb_to_ycbcr(*(info.mean_color));
