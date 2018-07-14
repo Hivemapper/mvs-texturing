@@ -1,10 +1,10 @@
-#include "mask/euclidean_view_mask.h"
+#include "mvs_tex_mask/euclidean_view_mask.h"
 
 #include <exception>
 #include <iostream>
 #include <string>
 
-#include "mask/triangle_voxel_intersection.h"
+#include "mvs_tex_mask/triangle_voxel_intersection.h"
 
 using std::vector;
 using std::set;

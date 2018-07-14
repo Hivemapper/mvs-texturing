@@ -1,3 +1,3 @@
 add_subdirectory(tex)
-add_subdirectory(wrapper)
-add_subdirectory(mask)
+add_subdirectory(mvs_tex_wrapper)
+add_subdirectory(mvs_tex_mask)

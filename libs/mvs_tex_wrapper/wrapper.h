@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "mvs_tex/mask/euclidean_view_mask.h"
+#include <mvs_tex_mask/euclidean_view_mask.h>
 
 namespace MvsTexturing {
 

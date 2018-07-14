@@ -17,7 +17,7 @@
 #include <mve/mesh_io_ply.h>
 
 
-#include "wrapper/wrapper.h"
+#include "mvs_tex_wrapper/wrapper.h"
 // #include "tex/util.h"
 // #include "tex/timer.h"
 // #include "tex/debug.h"

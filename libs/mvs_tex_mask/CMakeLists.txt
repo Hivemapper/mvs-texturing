@@ -7,4 +7,4 @@ add_library(${LIBRARY} SHARED ${SOURCES})
 #target_link_libraries(${LIBRARY} mvs_texturing)
 
 install(TARGETS ${LIBRARY} LIBRARY DESTINATION lib)
-install(FILES ${HEADERS} DESTINATION include/mvs_tex/mask)
+install(FILES ${HEADERS} DESTINATION include/mvs_tex_mask)

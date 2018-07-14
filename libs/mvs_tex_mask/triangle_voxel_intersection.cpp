@@ -3,7 +3,7 @@
  * This code is derived from license free code available at
  * http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/triangleCube.c
  */
-#include "mask/triangle_voxel_intersection.h"
+#include "mvs_tex_mask/triangle_voxel_intersection.h"
 
 #include <math.h>
 

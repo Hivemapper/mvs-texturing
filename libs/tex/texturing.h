@@ -14,7 +14,7 @@
 
 #include "mve/mesh.h"
 #include "mve/mesh_info.h"
-#include "mvs_tex/mask/euclidean_view_mask.h"
+#include <mvs_tex_mask/euclidean_view_mask.h>
 
 #include "defines.h"
 #include "settings.h"
