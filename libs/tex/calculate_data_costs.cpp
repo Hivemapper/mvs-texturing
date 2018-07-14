@@ -295,7 +295,7 @@ postprocess_face_infos(Settings const & settings,
     std::cout << "- added - PP2" << std::endl;
     #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < face_projection_infos->size(); ++i) {
-        std::cout << i << std::endl;
+        std::cout << i <<start << std::endl;
         face_counter.progress<SIMPLE>();
 
         std::vector<FaceProjectionInfo> & infos = face_projection_infos->at(i);
@@ -311,6 +311,7 @@ postprocess_face_infos(Settings const & settings,
         std::sort(infos.begin(), infos.end());
 
         face_counter.inc();
+        std::cout << i <<start << std::endl;
         // std::cout << "- added - looping" << std::endl;
     }
 
