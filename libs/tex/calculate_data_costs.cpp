@@ -292,7 +292,7 @@ postprocess_face_infos(Settings const & settings,
     ProgressCounter face_counter("\tPostprocessing face infos",
         face_projection_infos->size());
 
-    std::cout << "- added - PP2" << std::endl;
+    std::cout << "- added - PP2" <<  face_projection_infos->size() << std::endl;
     #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < face_projection_infos->size(); ++i) {
         std::cout << i <<"start" << std::endl;
