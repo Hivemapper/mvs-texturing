@@ -292,30 +292,30 @@ postprocess_face_infos(Settings const & settings,
     ProgressCounter face_counter("\tPostprocessing face infos",
         face_projection_infos->size());
 
-    std::cout << "- added - PP2" <<  face_projection_infos->size() << std::endl;
+    // std::cout << "- added - PP2" <<  face_projection_infos->size() << std::endl;
     #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < face_projection_infos->size(); ++i) {
-        std::cout << i <<"start" << std::endl;
+        // std::cout << i <<"start" << std::endl;
         face_counter.progress<SIMPLE>();
-        std::cout << i <<"count" << std::endl;
+        // std::cout << i <<"count" << std::endl;
         std::vector<FaceProjectionInfo> & infos = face_projection_infos->at(i);
         if (settings.outlier_removal != OUTLIER_REMOVAL_NONE) {
-            std::cout << "- added - outlier detection " << i << std::endl;
+            // std::cout << "- added - outlier detection " << i << std::endl;
             photometric_outlier_detection(&infos, settings);
-            std::cout << "- added - completed outlier detection" << std::endl;
+            // std::cout << "- added - completed outlier detection" << std::endl;
             infos.erase(std::remove_if(infos.begin(), infos.end(),
                 [](FaceProjectionInfo const & info) -> bool {return info.quality == 0.0f;}),
                 infos.end());
-            std::cout << "- added - erased" << std::endl;
+            // std::cout << "- added - erased" << std::endl;
         }
         std::sort(infos.begin(), infos.end());
 
         face_counter.inc();
-        std::cout << i <<"end" << std::endl;
+        // std::cout << i <<"end" << std::endl;
         // std::cout << "- added - looping" << std::endl;
     }
 
-    std::cout << "- added - normalizing" << std::endl;
+    // std::cout << "- added - normalizing" << std::endl;
     /* Determine the function for the normlization. */
     float max_quality = 0.0f;
     for (std::size_t i = 0; i < face_projection_infos->size(); ++i)
