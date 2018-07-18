@@ -48,11 +48,11 @@ ObjModel::save_to_files(std::string const & prefix) const {
             << 1.0f - texcoords[i][1] << '\n';
     }
 
-    for (std::size_t i = 0; i < normals.size(); ++i) {
-        out << "vn " << normals[i][0] << " "
-            << normals[i][1] << " "
-            << normals[i][2] << '\n';
-    }
+    // for (std::size_t i = 0; i < normals.size(); ++i) {
+    //     out << "vn " << normals[i][0] << " "
+    //         << normals[i][1] << " "
+    //         << normals[i][2] << '\n';
+    // }
 
     for (std::size_t i = 0; i < groups.size(); ++i) {
         out << "usemtl " << groups[i].material_name << '\n';
