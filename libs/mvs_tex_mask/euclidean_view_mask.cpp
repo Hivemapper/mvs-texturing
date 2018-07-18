@@ -11,6 +11,48 @@ using std::set;
 
 namespace MvsTexturing {
 
+
+bool rangesContain(const std::set<FrameRange>& ranges, uint16_t i) {
+  auto prev = ranges.lower_bound(FrameRange(i, i));
+  if (prev == ranges.end())
+    return false;
+  if (prev->first > i)
+    return false;
+  return true;
+}
+
+void insertRange(std::set<FrameRange>& ranges, const FrameRange& ij) {
+
+  uint16_t i = ij.first;
+  uint16_t j = ij.second;
+  auto end = ranges.end();
+  auto prev = ranges.lower_bound(FrameRange(i-1, i-1));
+  if (prev == end) {
+    ranges.insert(ij);
+    return;
+  }
+  uint16_t newi = std::min(i,prev->first);
+  auto post = ranges.lower_bound(FrameRange(j, j));
+  // check for complete containment
+  if (post != end) {
+    if (post->first <= i)
+      return;
+  }
+  uint16_t newj;
+  // does this overlap the new range
+  if (post != end && post->first <= j+1) {
+    newj = post->second;
+    post++;
+  } else {
+    newj = j;
+  }
+
+
+  ranges.erase(prev, post);
+  // insert new range
+  ranges.insert(FrameRange(newi, newj));
+}
+
 EuclideanViewMask::EuclideanViewMask(const Eigen::Matrix<double, 3, 1>& vmin,
                                      const Eigen::Matrix<double, 3, 3>& coord_transform,
                                      int nx,
@@ -58,7 +100,7 @@ vector<int> EuclideanViewMask::getVoxelIndex(const Eigen::Matrix<double, 3, 1>& 
 /**
  * @brief (private) non const accessor/mutator
  */
-set<uint16_t>& EuclideanViewMask::get(const vector<int>& xyz) {
+set<FrameRange>& EuclideanViewMask::get(const vector<int>& xyz) {
   if (!isValidXy(xyz[0], xyz[1])) {
     throw "invalid coordinates " + std::to_string(xyz[0]) + " " + std::to_string(xyz[1]);
   }
@@ -68,7 +110,7 @@ set<uint16_t>& EuclideanViewMask::get(const vector<int>& xyz) {
 /**
  * @brief const accessor
  */
-const set<uint16_t>& EuclideanViewMask::operator[](const vector<int>& xyz) const {
+const set<FrameRange>& EuclideanViewMask::operator[](const vector<int>& xyz) const {
   if (isValidXy(xyz[0], xyz[1]))
     return mask_data[xyz[0]][xyz[1]].at(xyz[2]);
   else
@@ -78,10 +120,17 @@ const set<uint16_t>& EuclideanViewMask::operator[](const vector<int>& xyz) const
 /**
  * @brief const membership checker
  */
-bool EuclideanViewMask::contains(const vector<int>& xyz, int i) const {
+bool EuclideanViewMask::contains(const Eigen::Matrix<double, 3, 1>& v, uint16_t i) const {
+  return contains(getVoxelIndex(v), i);
+}
+
+/**
+ * @brief const membership checker
+ */
+bool EuclideanViewMask::contains(const vector<int>& xyz, uint16_t i) const {
   if (isValidXy(xyz[0], xyz[1])) {
     if (mask_data[xyz[0]][xyz[1]].count(xyz[2]))
-      return mask_data[xyz[0]][xyz[1]].at(xyz[2]).count(i);
+      return rangesContain(mask_data[xyz[0]][xyz[1]].at(xyz[2]), i);
     else
       return false;
   } else {
@@ -91,14 +140,19 @@ bool EuclideanViewMask::contains(const vector<int>& xyz, int i) const {
 
 
 void EuclideanViewMask::insert(const Eigen::Matrix<double, 3, 1>& v, uint16_t i) {
-  set<uint16_t>& voxel = get(getVoxelIndex(v));
-  voxel.insert(i);
+  set<FrameRange>& voxel = get(getVoxelIndex(v));
+  insertRange(voxel, FrameRange(i, i));
 }
 
-void EuclideanViewMask::insert(const Eigen::Matrix<double, 3, 1>& v,  const set<uint16_t>& is) {
-  set<uint16_t>& voxel = get(getVoxelIndex(v));
-  for (uint16_t i : is) {
-    voxel.insert(i);
+void EuclideanViewMask::insert(const Eigen::Matrix<double, 3, 1>& v, FrameRange range) {
+  set<FrameRange>& voxel = get(getVoxelIndex(v));
+  insertRange(voxel, range);
+}
+
+void EuclideanViewMask::insert(const Eigen::Matrix<double, 3, 1>& v,  const set<FrameRange>& ranges) {
+  set<FrameRange>& voxel = get(getVoxelIndex(v));
+  for (FrameRange range : ranges) {
+    insertRange(voxel, range);
   }
 }
 
@@ -175,7 +229,7 @@ void EuclideanViewMask::dilate(int iterations) {
   int new_nx = nx + 2*iterations;
   int new_ny = ny + 2*iterations;
 
-  std::vector<std::vector<std::map<int, std::set<uint16_t>>>> new_mask_data;
+  std::vector<std::vector<std::map<int, std::set<FrameRange>>>> new_mask_data;
   new_mask_data.resize(new_nx);
   for (int i = 0; i < new_nx; ++i) {
     new_mask_data[i].resize(new_ny);
@@ -187,8 +241,8 @@ void EuclideanViewMask::dilate(int iterations) {
         for (int ii = 0; ii <= 2*iterations; ++ii) {
           for (int jj = 0; jj <= 2*iterations; ++jj) {
             for (int kk = 0; kk <= 2*iterations; ++kk) {
-              for (uint16_t frame : cell.second) {
-                new_mask_data[i+ii][j+jj][cell.first + kk].insert(frame);
+              for (const auto& fr : cell.second) {
+                new_mask_data[i+ii][j+jj][cell.first + kk].insert(fr);
               }
             }
           }
