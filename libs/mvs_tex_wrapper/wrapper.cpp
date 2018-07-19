@@ -29,26 +29,12 @@ void textureMesh(const std::string& in_scene, const std::string& in_mesh, const 
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
-    // std::string in_scene;
-    // std::string in_mesh;
-    // std::string out_prefix;
 
     std::string data_cost_file = "";
     std::string labeling_file = "";
 
-    // util::system::print_build_timestamp(argv[0]);
-    // util::system::register_segfault_handler();
-
     Timer timer;
     util::WallTimer wtimer;
-
-    // Arguments conf;
-    // try {
-    //     conf = parse_args(argc, argv);
-    // } catch (std::invalid_argument & ia) {
-    //     std::cerr << ia.what() << std::endl;
-    //     std::exit(EXIT_FAILURE);
-    // }
 
     //
     // Prep Filesystem + load data
@@ -65,13 +51,6 @@ void textureMesh(const std::string& in_scene, const std::string& in_mesh, const 
     if (!util::fs::dir_exists(tmp_dir.c_str())) {
         util::fs::mkdir(tmp_dir.c_str());
     }
-    // else {
-    //     std::cerr
-    //         << "Temporary directory \"tmp\" exists within the destination directory.\n"
-    //         << "Cannot continue since this directory would be delete in the end.\n"
-    //         << std::endl;
-    //     std::exit(EXIT_FAILURE);
-    // }
 
     std::cout << "Load and prepare mesh: " << std::endl;
     mve::TriangleMesh::Ptr mesh;
@@ -88,7 +67,6 @@ void textureMesh(const std::string& in_scene, const std::string& in_mesh, const 
     tex::TextureViews texture_views;
     tex::generate_texture_views(in_scene, &texture_views, tmp_dir);
 
-    // write_string_to_file(out_prefix + ".conf", conf.to_string());
     timer.measure("Loading");
 
     std::size_t const num_faces = mesh->get_faces().size() / 3;
@@ -101,6 +79,9 @@ void textureMesh(const std::string& in_scene, const std::string& in_mesh, const 
     // Build Processing Settings
     //
     tex::Settings settings;
+    // Optionally - ignore detail in setting data values - gives fewer selected occluders at teh cost of
+    // including more blurred shots.
+    // settings.data_term = tex::DATA_TERM_AREA;
     settings.outlier_removal = tex::OUTLIER_REMOVAL_GAUSS_CLAMPING;
     settings.geometric_visibility_test = true;  // may be better without?
     settings.global_seam_leveling = true;
