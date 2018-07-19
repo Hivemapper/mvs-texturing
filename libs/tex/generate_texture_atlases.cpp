@@ -40,7 +40,7 @@ calculate_texture_size(std::list<TexturePatch::ConstPtr> const & texture_patches
         unsigned int total_area = 0;
         unsigned int max_width = 0;
         unsigned int max_height = 0;
-        unsigned int padding = std::min(4u, size >> 8);
+        unsigned int padding = std::min(5u, size >> 8);
 
         for (TexturePatch::ConstPtr texture_patch : texture_patches) {
             unsigned int width = texture_patch->get_width() + 2 * padding;
