@@ -81,10 +81,13 @@ void textureMesh(const std::string& in_scene, const std::string& in_mesh, const 
     tex::Settings settings;
     // Optionally - ignore detail in setting data values - gives fewer selected occluders at teh cost of
     // including more blurred shots.
-    // settings.data_term = tex::DATA_TERM_AREA;
+    settings.data_term = tex::DATA_TERM_AREA;
     settings.outlier_removal = tex::OUTLIER_REMOVAL_GAUSS_CLAMPING;
-    settings.geometric_visibility_test = true;  // may be better without?
-    settings.global_seam_leveling = true;
+    settings.geometric_visibility_test = false;  // may be better without?
+    // settings.geometric_visibility_test = true;  // may be better without?
+    settings.tone_mapping = tex::TONE_MAPPING_GAMMA;
+    settings.global_seam_leveling = false;
+    // settings.global_seam_leveling = true;
     settings.local_seam_leveling = true;
     settings.hole_filling = true;
     // settings.hole_filling = false;
