@@ -20,12 +20,11 @@
 
 namespace MvsTexturing {
 
-std::string testFunc(int n) {
-  return "BEHOLD: " + std::to_string(n) + number_suffix(n);
-}
-
-
-void textureMesh(const std::string& in_scene, const std::string& in_mesh, const std::string& out_prefix, std::shared_ptr<EuclideanViewMask> ev_mask) {
+void textureMesh(const TextureSettings& texture_settings,
+                 const std::string& in_scene, 
+                 const std::string& in_mesh, 
+                 const std::string& out_prefix, 
+                 std::shared_ptr<EuclideanViewMask> ev_mask) {
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
@@ -79,19 +78,28 @@ void textureMesh(const std::string& in_scene, const std::string& in_mesh, const 
     // Build Processing Settings
     //
     tex::Settings settings;
-    // Optionally - ignore detail in setting data values - gives fewer selected occluders at teh cost of
-    // including more blurred shots.
-    settings.data_term = tex::DATA_TERM_AREA;
-    settings.outlier_removal = tex::OUTLIER_REMOVAL_GAUSS_CLAMPING;
-    settings.geometric_visibility_test = false;  // may be better without?
-    // settings.geometric_visibility_test = true;  // may be better without?
-    settings.tone_mapping = tex::TONE_MAPPING_GAMMA;
-    settings.global_seam_leveling = false;
-    // settings.global_seam_leveling = true;
-    settings.local_seam_leveling = true;
-    settings.hole_filling = true;
-    // settings.hole_filling = false;
-    settings.keep_unseen_faces = true;
+    if (texture_settings.do_use_gmi_term)
+        settings.data_term = tex::DATA_TERM_GMI;
+    else
+        settings.data_term = tex::DATA_TERM_AREA;
+
+    if (texture_settings.do_gauss_clamping)
+        settings.outlier_removal = tex::OUTLIER_REMOVAL_GAUSS_CLAMPING;
+    else if (texture_settings.do_gauss_damping)
+        settings.outlier_removal = tex::OUTLIER_REMOVAL_GAUSS_DAMPING;
+    else
+        settings.outlier_removal = tex::OUTLIER_REMOVAL_NONE;
+
+    if (texture_settings.do_gamma_tone_mapping)
+        settings.tone_mapping = tex::TONE_MAPPING_GAMMA;
+    else
+        settings.tone_mapping = tex::TONE_MAPPING_NONE;
+
+    settings.geometric_visibility_test = texture_settings.do_geometric_visibility_test;
+    settings.global_seam_leveling = texture_settings.do_global_seam_leveling;
+    settings.local_seam_leveling = texture_settings.do_local_seam_leveling;
+    settings.hole_filling = texture_settings.do_hole_filling;
+    settings.keep_unseen_faces = texture_settings.do_keep_unseen_faces;
 
     if (labeling_file.empty()) {
         std::cout << "View selection:" << std::endl;

@@ -27,22 +27,23 @@
 #include "arguments.h"
 
 int main(int argc, char **argv) {
-    std::cout << "HI I AM TEXRECON APP " << std::endl;
-    util::system::print_build_timestamp(argv[0]);
-    util::system::register_segfault_handler();
+    std::cout << "HI I AM TEXRECON APP - BUT I AM DEPRECATED" << std::endl;
+    return 0;
+    // util::system::print_build_timestamp(argv[0]);
+    // util::system::register_segfault_handler();
 
     // Timer timer;
     // util::WallTimer wtimer;
 
-    Arguments conf;
-    try {
-        conf = parse_args(argc, argv);
-    } catch (std::invalid_argument & ia) {
-        std::cerr << ia.what() << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
+    // Arguments conf;
+    // try {
+    //     conf = parse_args(argc, argv);
+    // } catch (std::invalid_argument & ia) {
+    //     std::cerr << ia.what() << std::endl;
+    //     std::exit(EXIT_FAILURE);
+    // }
 
-    MvsTexturing::textureMesh(conf.in_scene, conf.in_mesh, conf.out_prefix) ;
+    // MvsTexturing::textureMesh(conf.in_scene, conf.in_mesh, conf.out_prefix) ;
 
     // std::string const out_dir = util::fs::dirname(conf.out_prefix);
 
