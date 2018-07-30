@@ -92,7 +92,7 @@ vector<int> EuclideanViewMask::getVoxelIndex(const Eigen::Matrix<double, 3, 1>& 
   xyz[1] = floor(vi[1]);
   xyz[2] = floor(vi[2]);
   if (!isValidXy(xyz[0], xyz[1])) {
-    throw "Warning: location results in invalid coordinates";
+    throw std::invalid_argument("Warning: location " + std::to_string(v[0]) + ", " + std::to_string(v[1]) + ", " + std::to_string(v[2]) + ", " +  " results in invalid coordinates");
   }
   return xyz;
 }
@@ -102,7 +102,7 @@ vector<int> EuclideanViewMask::getVoxelIndex(const Eigen::Matrix<double, 3, 1>& 
  */
 set<FrameRange>& EuclideanViewMask::get(const vector<int>& xyz) {
   if (!isValidXy(xyz[0], xyz[1])) {
-    throw "invalid coordinates " + std::to_string(xyz[0]) + " " + std::to_string(xyz[1]);
+    throw std::invalid_argument("invalid coordinates " + std::to_string(xyz[0]) + " " + std::to_string(xyz[1]));
   }
   return mask_data[xyz[0]][xyz[1]][xyz[2]];
 }
@@ -114,7 +114,7 @@ const set<FrameRange>& EuclideanViewMask::operator[](const vector<int>& xyz) con
   if (isValidXy(xyz[0], xyz[1]))
     return mask_data[xyz[0]][xyz[1]].at(xyz[2]);
   else
-    throw;
+    throw std::invalid_argument("Invalid Access");
 }
 
 /**

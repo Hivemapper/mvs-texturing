@@ -202,10 +202,16 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
 
                 // check the euclidean mask if provided
                 if (ev_mask) {
-                    if (!ev_mask->contains(
-                            ev_mask->getVoxelIndex(Eigen::Vector3d(face_center[0], face_center[1], face_center[2])),
-                            texture_view->get_id()))
+                    try {
+                        if (!ev_mask->contains(
+                                ev_mask->getVoxelIndex(Eigen::Vector3d(face_center[0], face_center[1], face_center[2])),
+                                texture_view->get_id()))
+                            continue;
+                    } catch (...) {
+                        std::cout << "Warning, point " << face_center[0] << ", " << face_center[1] << ", " << face_center[2] 
+                            << " outside mask domain"<< std::endl;
                         continue;
+                    }
                 }
 
                 /* Check visibility and compute quality */
