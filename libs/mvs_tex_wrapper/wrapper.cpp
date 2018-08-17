@@ -14,6 +14,7 @@
 #include "tex/progress_counter.h"
 #include "tex/settings.h"
 #include "tex/texturing.h"
+#include "tex/texture_patch.h"
 #include "tex/timer.h"
 #include "tex/util.h"
 
@@ -21,9 +22,11 @@
 namespace MvsTexturing {
 
 void textureMesh(const TextureSettings& texture_settings,
-                 const std::string& in_scene, 
-                 const std::string& in_mesh, 
-                 const std::string& out_prefix, 
+                 const std::string& in_scene,
+                 const std::string& in_mesh,
+                 const std::string& out_prefix,
+                 const std::vector<std::vector<bool>>& sub_vert_masks,
+                 const std::vector<std::string>& sub_names,
                  std::shared_ptr<EuclideanViewMask> ev_mask) {
     bool write_timings = false;
     bool write_intermediate_results = false;
@@ -169,10 +172,11 @@ void textureMesh(const TextureSettings& texture_settings,
         std::cout << "done." << std::endl;
     }
 
-    tex::TextureAtlases texture_atlases;
+    // generate full texture patchs
+    tex::TexturePatches texture_patches;
     {
         /* Create texture patches and adjust them. */
-        tex::TexturePatches texture_patches;
+
         tex::VertexProjectionInfos vertex_projection_infos;
         std::cout << "Generating texture patches:" << std::endl;
         tex::generate_texture_patches(graph, mesh, mesh_info, &texture_views,
@@ -200,52 +204,68 @@ void textureMesh(const TextureSettings& texture_settings,
             tex::local_seam_leveling(graph, mesh, vertex_projection_infos, &texture_patches);
         }
         timer.measure("Running local seam leveling");
-
-        /* Generate texture atlases. */
-        std::cout << "Generating texture atlases:" << std::endl;
-        tex::generate_texture_atlases(&texture_patches, settings, &texture_atlases);
     }
 
-    /* Create and write out obj model. */
-    {
-        std::cout << "Building objmodel:" << std::endl;
-        tex::Model model;
-        tex::build_model(mesh, texture_atlases, &model);
-        timer.measure("Building OBJ model");
+    // Now loop, generating+saving subindexed meshes and atlas
+    for (int vi = 0; vi < sub_vert_masks.size(); ++vi) {
+        std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi+1 << " of " << sub_vert_masks.size() << std::endl;
+        tex::TextureAtlases sub_texture_atlases;
+        const std::vector<bool>& vertex_mask(sub_vert_masks[vi]);
+        std::vector<bool> inverted_mask(vertex_mask.size());
+        for (std::size_t i = 0; i < vertex_mask.size(); ++i)
+            inverted_mask[i] = !vertex_mask[i];
 
-        std::cout << "\tSaving model... " << std::flush;
-        tex::Model::save(model, out_prefix);
-        std::cout << "done." << std::endl;
-        timer.measure("Saving");
-    }
+        const std::string& sub_name(sub_names[vi]);
+        // std::vector<std::size_t> vertex_indices;
+        std::vector<std::size_t> face_indices;
+        // generate_vertex_reindex(vertex_mask, vertex_indices);
+        generate_face_reindex(vertex_mask, mesh->get_faces(), face_indices);
 
-    std::cout << "Whole texturing procedure took: " << wtimer.get_elapsed_sec() << "s" << std::endl;
-    timer.measure("Total");
-    if (write_timings) {
-        timer.write_to_file(out_prefix + "_timings.csv");
-    }
+        // generate face reindex
 
-    if (write_view_selection_model) {
-        texture_atlases.clear();
-        std::cout << "Generating debug texture patches:" << std::endl;
+        // redo mesh
+        mve::TriangleMesh::Ptr sub_mesh = mesh->duplicate();
+        sub_mesh->delete_vertices_fix_faces(inverted_mask);
+
+        std::cout << "Model includes " << sub_mesh->get_faces().size()/3 << " of "
+                  << mesh->get_faces().size()/3 << " faces." << std::endl;
+
+        // redo_patches
+        tex::TexturePatches sub_texture_patches;
+        size_t patch_ct = 0;
+        for(std::size_t i = 0; i < texture_patches.size(); ++i) {
+            TexturePatch::Ptr new_patch = TexturePatch::create(texture_patches[i], face_indices);
+            if (!new_patch->get_faces().empty()) {
+                new_patch->set_label(patch_ct);
+                sub_texture_patches.push_back(new_patch);
+                patch_ct++;
+            }
+        }
+                std::cout << "And " << sub_texture_patches.size() << " of "
+                  << texture_patches.size() << " patches." << std::endl;
+
         {
-            tex::TexturePatches texture_patches;
-            generate_debug_embeddings(&texture_views);
-            tex::VertexProjectionInfos vertex_projection_infos; // Will only be written
-            tex::generate_texture_patches(graph, mesh, mesh_info, &texture_views,
-                settings, &vertex_projection_infos, &texture_patches);
-            tex::generate_texture_atlases(&texture_patches, settings, &texture_atlases);
+            /* Generate texture atlases. */
+            std::cout << "Generating texture atlases:" << std::endl;
+            tex::generate_texture_atlases(&sub_texture_patches, settings, &sub_texture_atlases);
         }
 
-        std::cout << "Building debug objmodel:" << std::endl;
+        /* Create and write out obj model. */
         {
-            tex::Model model;
-            tex::build_model(mesh, texture_atlases, &model);
-            std::cout << "\tSaving model... " << std::flush;
-            tex::Model::save(model, out_prefix + "_view_selection");
+            std::cout << "Building objmodel:" << std::endl;
+            tex::Model sub_model;
+            tex::build_model(sub_mesh, sub_texture_atlases, &sub_model);
+            timer.measure("Building OBJ model");
+
+            std::cout << "\tSaving model to " << out_prefix+sub_name << "... " << std::flush;
+            tex::Model::save(sub_model, out_prefix+sub_name);
             std::cout << "done." << std::endl;
+            timer.measure("Saving");
         }
+
+        timer.measure("Total");
     }
+    std::cout << "Whole texturing procedure took: " << wtimer.get_elapsed_sec() << "s" << std::endl;
 
     /* Remove temporary files. */
     for (util::fs::File const & file : util::fs::Directory(tmp_dir)) {
@@ -254,6 +274,53 @@ void textureMesh(const TextureSettings& texture_settings,
     util::fs::rmdir(tmp_dir.c_str());
 
 }
+
+void generate_vertex_reindex(const std::vector<bool>& mask, std::vector<std::size_t>& new_indices) {
+    new_indices.resize(mask.size());
+    std::size_t ct = 0;
+    for (std::size_t i = 0; i < new_indices.size(); ++i) {
+        if (mask[i]) {
+            new_indices[i] = ct;
+            ++ct;
+        } else {
+            new_indices[i] = std::numeric_limits<std::size_t>::max();
+        }
+    }
+}
+
+bool is_valid_tri(std::size_t i, const std::vector<bool>& mask, const std::vector<unsigned int>& old_faces) {
+    return mask[old_faces[i*3]] && mask[old_faces[i*3+1]] && mask[old_faces[i*3+2]];
+}
+
+
+/**
+ * @brief Strange reindexing to match the swap-based MVE reduction
+ */
+void generate_face_reindex(const std::vector<bool>& mask,
+                           const std::vector<unsigned int>& old_faces,
+                           std::vector<std::size_t>& new_indices) {
+    new_indices.resize(old_faces.size()/3);
+    std::size_t front = 0;
+    std::size_t back = new_indices.size() -1;
+    while (front < back) {
+        if (is_valid_tri(front, mask, old_faces)) {
+            new_indices[front] = front;
+            ++front;
+        } else {
+            while (front < back && !is_valid_tri(back, mask, old_faces)) {
+                new_indices[back] = std::numeric_limits<std::size_t>::max();
+                --back;
+            }
+            if (back > front && is_valid_tri(back, mask, old_faces)) {
+                new_indices[back] = front;
+                back--;
+                front++;
+            }
+        }
+    }
+}
+
+
 
 
 }  // namespace MvsTexturing

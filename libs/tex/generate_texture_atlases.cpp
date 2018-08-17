@@ -40,11 +40,12 @@ calculate_texture_size(std::list<TexturePatch::ConstPtr> const & texture_patches
         unsigned int total_area = 0;
         unsigned int max_width = 0;
         unsigned int max_height = 0;
-        unsigned int padding = std::min(5u, size >> 8);
+        unsigned int padding = size >> 8;
 
         for (TexturePatch::ConstPtr texture_patch : texture_patches) {
-            unsigned int width = texture_patch->get_width() + 2 * padding;
-            unsigned int height = texture_patch->get_height() + 2 * padding;
+            uint local_padding = compute_local_padding(texture_patch->get_width(), texture_patch->get_height(), padding);
+            unsigned int width = texture_patch->get_width() + 2 * local_padding;
+            unsigned int height = texture_patch->get_height() + 2 * local_padding;
 
             max_width = std::max(max_width, width);
             max_height = std::max(max_height, height);
@@ -52,12 +53,12 @@ calculate_texture_size(std::list<TexturePatch::ConstPtr> const & texture_patches
             unsigned int area = width * height;
             unsigned int waste = area - texture_patch->get_size();
 
-            /* Only consider patches where the information dominates padding. */
-            if (static_cast<double>(waste) / texture_patch->get_size() > 1.0) {
-                /* Since the patches are sorted by size we can assume that only
-                 * few further patches will contribute to the size and break. */
-                break;
-            }
+            // /* Only consider patches where the information dominates padding. */
+            // if (static_cast<double>(waste) / texture_patch->get_size() > 1.0) {
+            //      Since the patches are sorted by size we can assume that only
+            //      * few further patches will contribute to the size and break. 
+            //     break;
+            // }
 
             total_area += area;
         }

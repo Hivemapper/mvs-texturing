@@ -46,10 +46,14 @@ class TexturePatch {
             std::vector<math::Vec2f>  const & _texcoords, mve::FloatImage::Ptr _image);
 
         TexturePatch(TexturePatch const & texture_patch);
+        TexturePatch(TexturePatch const & texture_patch, const std::vector<std::size_t>& new_face_indices);
 
         static TexturePatch::Ptr create(TexturePatch::ConstPtr texture_patch);
+        static TexturePatch::Ptr create(TexturePatch::ConstPtr texture_patch, const std::vector<std::size_t>& new_face_indices);
         static TexturePatch::Ptr create(int label, std::vector<std::size_t> const & faces,
             std::vector<math::Vec2f> const & texcoords, mve::FloatImage::Ptr image);
+
+
 
         TexturePatch::Ptr duplicate(void);
 
@@ -83,6 +87,7 @@ class TexturePatch {
         void blend(mve::FloatImage::ConstPtr orig);
 
         int get_label(void) const;
+        void set_label(int l) {label = l;}
         int get_width(void) const;
         int get_height(void) const;
         int get_size(void) const;
@@ -91,6 +96,11 @@ class TexturePatch {
 inline TexturePatch::Ptr
 TexturePatch::create(TexturePatch::ConstPtr texture_patch) {
     return std::make_shared<TexturePatch>(*texture_patch);
+}
+
+inline TexturePatch::Ptr
+TexturePatch::create(TexturePatch::ConstPtr texture_patch, const std::vector<std::size_t>& new_face_indices) {
+    return std::make_shared<TexturePatch>(*texture_patch, new_face_indices);
 }
 
 inline TexturePatch::Ptr

@@ -17,7 +17,7 @@
 #include "texture_atlas.h"
 
 TextureAtlas::TextureAtlas(unsigned int size) :
-    size(size), padding(std::min(5u, size >> 8)), finalized(false) {
+    size(size), padding(size >> 8), finalized(false) {
 
     bin = RectangularBin::create(size, size);
     image = mve::ByteImage::create(size, size, 3);
@@ -53,6 +53,8 @@ void copy_into(mve::ByteImage::ConstPtr src, int x, int y,
 typedef std::vector<std::pair<int, int> > PixelVector;
 typedef std::set<std::pair<int, int> > PixelSet;
 
+
+
 bool
 TextureAtlas::insert(TexturePatch::ConstPtr texture_patch) {
     if (finalized) {
@@ -62,8 +64,10 @@ TextureAtlas::insert(TexturePatch::ConstPtr texture_patch) {
     assert(bin != NULL);
     assert(validity_mask != NULL);
 
-    int const width = texture_patch->get_width() + 2 * padding;
-    int const height = texture_patch->get_height() + 2 * padding;
+    uint local_padding = compute_local_padding(texture_patch->get_width(), texture_patch->get_height(), padding);
+
+    int const width = texture_patch->get_width() + 2 * local_padding;
+    int const height = texture_patch->get_height() + 2 * local_padding;
     Rect<int> rect(0, 0, width, height);
     if (!bin->insert(&rect)) return false;
 
@@ -71,15 +75,15 @@ TextureAtlas::insert(TexturePatch::ConstPtr texture_patch) {
     mve::ByteImage::Ptr patch_image = mve::image::float_to_byte_image(
         texture_patch->get_image(), 0.0f, 1.0f);
 
-    copy_into(patch_image, rect.min_x, rect.min_y, image, padding);
+    copy_into(patch_image, rect.min_x, rect.min_y, image, local_padding);
     mve::ByteImage::ConstPtr patch_validity_mask = texture_patch->get_validity_mask();
-    copy_into(patch_validity_mask, rect.min_x, rect.min_y, validity_mask, padding);
+    copy_into(patch_validity_mask, rect.min_x, rect.min_y, validity_mask, local_padding);
 
     TexturePatch::Faces const & patch_faces = texture_patch->get_faces();
     TexturePatch::Texcoords const & patch_texcoords = texture_patch->get_texcoords();
 
     /* Calculate the offset of the texture patches' relative texture coordinates */
-    math::Vec2f offset = math::Vec2f(rect.min_x + padding, rect.min_y + padding);
+    math::Vec2f offset = math::Vec2f(rect.min_x + local_padding, rect.min_y + local_padding);
 
     faces.insert(faces.end(), patch_faces.begin(), patch_faces.end());
 

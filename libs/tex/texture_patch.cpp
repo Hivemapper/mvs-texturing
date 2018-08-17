@@ -36,6 +36,31 @@ TexturePatch::TexturePatch(TexturePatch const & texture_patch) {
     }
 }
 
+TexturePatch::TexturePatch(TexturePatch const & texture_patch, const std::vector<std::size_t>& new_face_indices) {
+    label = texture_patch.label;
+    // std::cout << new_face_indices.size() << std::endl;
+    // std::cout << texture_patch.faces.size() << " - " << texture_patch.texcoords.size() << std::endl;
+    // assert(texture_patch.faces.size() == texture_patch.texcoords.size());
+    faces.clear();
+    texcoords.clear();
+    for (std::size_t i = 0; i < texture_patch.faces.size(); i ++) {
+        
+        bool valid = (new_face_indices[texture_patch.faces[i]] != std::numeric_limits<std::size_t>::max());
+        if (valid) {
+            faces.push_back(new_face_indices[texture_patch.faces[i]]);
+            texcoords.push_back(texture_patch.texcoords[i*3]);
+            texcoords.push_back(texture_patch.texcoords[i*3+1]);
+            texcoords.push_back(texture_patch.texcoords[i*3+2]);
+        }
+    }
+
+    image = texture_patch.image->duplicate();
+    validity_mask = texture_patch.validity_mask->duplicate();
+    if (texture_patch.blending_mask != NULL) {
+        blending_mask = texture_patch.blending_mask->duplicate();
+    }
+}
+
 const float sqrt_2 = sqrt(2);
 
 void

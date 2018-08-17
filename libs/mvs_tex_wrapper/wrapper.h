@@ -19,9 +19,17 @@ struct TextureSettings {
     bool do_keep_unseen_faces = true;
 };
 
+void generate_vertex_reindex(const std::vector<bool>& mask, std::vector<std::size_t>& new_indices);
+
+void generate_face_reindex(const std::vector<bool>& mask,
+                           const std::vector<unsigned int>& old_faces,
+                           std::vector<std::size_t>& new_indices);
+
 void textureMesh(const TextureSettings& texture_settings,
                  const std::string& in_scene,
                  const std::string& in_mesh,
                  const std::string& out_prefix,
+                 const std::vector<std::vector<bool>>& sub_vert_masks,
+                 const std::vector<std::string>& sub_names,
                  std::shared_ptr<EuclideanViewMask> ev_mask = NULL);
 }  // namespace MvsTexturing

@@ -162,6 +162,7 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
     std::size_t const num_views = texture_views->size();
 
     std::cout << num_views << " Texture Views" << std::endl;
+
     util::WallTimer timer;
     std::cout << "\tBuilding BVH from " << faces.size() / 3 << " faces... " << std::flush;
     BVHTree bvh_tree(faces, vertices);
@@ -363,6 +364,8 @@ calculate_data_costs(mve::TriangleMesh::ConstPtr mesh, std::vector<TextureView> 
         throw std::runtime_error("Exeeded maximal number of faces");
     if (num_views > std::numeric_limits<std::uint16_t>::max())
         throw std::runtime_error("Exeeded maximal number of views");
+    if (num_views == 0)
+        throw std::runtime_error("No valid views found - camera parameters may be incorrect");
 
     FaceProjectionInfos face_projection_infos(num_faces);
     calculate_face_projection_infos(mesh, texture_views, settings, &face_projection_infos, ev_mask);
