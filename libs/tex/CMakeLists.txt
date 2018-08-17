@@ -3,6 +3,7 @@ file (GLOB SOURCES "[^_]*.cpp")
 
 set(LIBRARY mvs_tex)
 add_library(${LIBRARY} SHARED ${SOURCES})
+SET_TARGET_PROPERTIES(${LIBRARY} PROPERTIES SOVERSION ${MVS_TEX_VERSION})
 set_property(TARGET ${LIBRARY} PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
 add_dependencies(${LIBRARY} ext_mve ext_rayint ext_mapmap mvs_tex_mask)
 #add_dependencies(${LIBRARY} ext_mve ext_rayint ext_eigen ext_mapmap)

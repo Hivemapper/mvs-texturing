@@ -4,6 +4,7 @@ file (GLOB SOURCES "*.cpp")
 
 set(LIBRARY mvs_tex_wrapper)
 add_library(${LIBRARY} STATIC SHARED ${SOURCES})
+SET_TARGET_PROPERTIES(${LIBRARY} PROPERTIES SOVERSION ${MVS_TEX_VERSION})
 add_dependencies(${LIBRARY} mvs_tex_mask)
 target_link_libraries(${LIBRARY} mvs_tex mvs_tex_mask -lmve -lmve_util)
 
