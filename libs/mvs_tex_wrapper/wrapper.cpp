@@ -207,6 +207,7 @@ void textureMesh(const TextureSettings& texture_settings,
     }
 
     // Now loop, generating+saving subindexed meshes and atlas
+    #pragma omp parallel for schedule(dynamic)
     for (int vi = 0; vi < sub_vert_masks.size(); ++vi) {
         std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi+1 << " of " << sub_vert_masks.size() << std::endl;
         tex::TextureAtlases sub_texture_atlases;
