@@ -42,6 +42,10 @@ bool photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Sett
     /* If all covariances drop below this we stop outlier detection. */
     double const minimal_covariance = 5e-4;
 
+    // experimental tighter params; don't seem very good.
+    // int const outlier_detection_iterations = 15;
+    // int const minimal_num_inliers = 2;
+    // default params
     int const outlier_detection_iterations = 10;
     int const minimal_num_inliers = 4;
 
@@ -55,35 +59,26 @@ bool photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Sett
             outlier_removal_factor = 0.2f;
         break;
     }
-    // std::cout << " - added - Inliers:  " << infos->size() << std::endl;
     Eigen::MatrixX3d inliers(infos->size(), 3);
 
     std::vector<std::uint32_t> is_inlier(infos->size(), 1);
-    // std::cout << " - added - about to trigger mve stuff " << std::endl;
     for (std::size_t row = 0; row < infos->size(); ++row) {
         inliers.row(row) = mve_to_eigen(infos->at(row).mean_color).cast<double>();
     }
-    // std::cout << " - added - triggered " << std::endl;
 
     Eigen::RowVector3d var_mean;
     Eigen::Matrix3d covariance;
     Eigen::Matrix3d covariance_inv;
 
-    // std::cout << " - added - detecting outliers " << std::endl;
     for (int i = 0; i < outlier_detection_iterations; ++i) {
-        // std::cout << " - added - checking inliers " << std::endl;
-        // std::cout << " - added - " << inliers.rows() << std::endl;
         if (inliers.rows() < minimal_num_inliers) {
             return false;
         }
 
         /* Calculate the inliers' mean color and color covariance. */
-        // std::cout << " - added - finding covariance " << std::endl;
         var_mean = inliers.colwise().mean();
         Eigen::MatrixX3d centered = inliers.rowwise() - var_mean;
         covariance = (centered.adjoint() * centered) / double(inliers.rows() - 1);
-        // std::cout << " - added - have covariance " << std::endl;
-        // std::cout << centered.size() << std::endl;
         /* If all covariances are very small we stop outlier detection
          * and only keep the inliers (set quality of outliers to zero). */
         if (covariance.array().abs().maxCoeff() < minimal_covariance) {
@@ -95,15 +90,11 @@ bool photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Sett
 
         /* Invert the covariance. FullPivLU is not the fastest way but
          * it gives feedback about numerical stability during inversion. */
-        // std::cout << " - added - luing" << std::endl;
         Eigen::FullPivLU<Eigen::Matrix3d> lu(covariance);
-        // std::cout << " - added - made lu" << std::endl;
         if (!lu.isInvertible()) {
             return false;
         }
-        // std::cout << " - added - about to invert" << std::endl;
         covariance_inv = lu.inverse();
-        // std::cout << " - added - lud " << std::endl;
 
         /* Compute new number of inliers (all views with a gauss value above a threshold). */
         for (std::size_t row = 0; row < infos->size(); ++row) {
@@ -111,29 +102,21 @@ bool photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Sett
             double gauss_value = multi_gauss_unnormalized(color, var_mean, covariance_inv);
             is_inlier[row] = (gauss_value >= gauss_rejection_threshold ? 1 : 0);
         }
-        // std::cout << " - added - updated inliers " << std::endl;
         size_t ss = std::accumulate(is_inlier.begin(), is_inlier.end(), 0);
-        // std::cout << "Resizing: " << ss << std::endl;
 
         /* Resize Eigen matrix accordingly and fill with new inliers. */
         inliers.resize(ss, Eigen::NoChange);
-        // std::cout << " - added - resized" << std::endl;
         for (std::size_t row = 0, inlier_row = 0; row < infos->size(); ++row) {
             if (is_inlier[row]) {
                 inliers.row(inlier_row++) = mve_to_eigen(infos->at(row).mean_color).cast<double>();
             }
         }
-        // std::cout << " - added - accumulated" << std::endl;
     }
-    // std::cout << " - added - outliers detected" << std::endl;
 
-    // std::cout << " - added - final conversion" << std::endl;
     covariance_inv *= outlier_removal_factor;
     for (FaceProjectionInfo & info : *infos) {
         Eigen::RowVector3d color = mve_to_eigen(info.mean_color).cast<double>();
-        // std::cout << " - added - multigauss" << std::endl;
         double gauss_value = multi_gauss_unnormalized(color, var_mean, covariance_inv);
-        // std::cout << " - added - asserting" << std::endl;
         assert(0.0 <= gauss_value && gauss_value <= 1.0);
         switch(settings.outlier_removal) {
             case OUTLIER_REMOVAL_NONE: return true;
@@ -144,9 +127,7 @@ bool photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Sett
                 if (gauss_value < gauss_rejection_threshold) info.quality = 0.0f;
             break;
         }
-        // std::cout << " - added - next" << std::endl;
     }
-    // std::cout << " - added - returning" << std::endl;
     return true;
 }
 
@@ -175,7 +156,6 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
 
         #pragma omp for schedule(dynamic)
         for (std::uint16_t j = 0; j < static_cast<std::uint16_t>(num_views); ++j) {
-            // std::cout << j << std::endl;
             view_counter.progress<SIMPLE>();
 
             TextureView * texture_view = &texture_views->at(j);
@@ -201,13 +181,41 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
                 math::Vec3f const & face_normal = face_normals[face_id];
                 math::Vec3f const face_center = (v1 + v2 + v3) / 3.0f;
 
+                /* Backface and basic frustum culling */
+                // float viewing_angle = face_to_view_vec.dot(face_normal);
+                // if (viewing_angle < 0.0f || viewing_direction.dot(view_to_face_vec) < 0.0f)
+                //     continue;
+
+                // if (std::acos(viewing_angle) > MATH_DEG2RAD(75.0f))
+                //     continue;
+
+                /* Projects into the valid part of the TextureView? */
+                if (!texture_view->inside(v1, v2, v3))
+                    continue;
+
+                std::vector<Eigen::Vector3d> eface(3);
+                eface[0] = Eigen::Vector3d(v1[0], v1[1], v1[2]);
+                eface[1] = Eigen::Vector3d(v2[0], v2[1], v2[2]);
+                eface[2] = Eigen::Vector3d(v3[0], v3[1], v3[2]);
+                std::vector<std::vector<int>> voxels;
                 // check the euclidean mask if provided
                 if (ev_mask) {
                     try {
                         if (!ev_mask->contains(
                                 ev_mask->getVoxelIndex(Eigen::Vector3d(face_center[0], face_center[1], face_center[2])),
-                                texture_view->get_id()))
-                            continue;
+                                texture_view->get_id())) {
+                            ev_mask->getTriangleVoxels(eface, voxels);
+                            bool hit = false;
+                            for (int vi = 0; vi < voxels.size(); ++vi) {
+                                if (ev_mask->contains(voxels[vi], texture_view->get_id())) {
+                                    hit = true;
+                                    break;
+                                }
+                            }
+                            if (!hit)
+                                continue;
+                        }
+
                     } catch (...) {
                         std::cout << "Warning, point " << face_center[0] << ", " << face_center[1] << ", " << face_center[2] 
                             << " outside mask domain"<< std::endl;
@@ -220,17 +228,7 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
                 math::Vec3f view_to_face_vec = (face_center - view_pos).normalized();
                 math::Vec3f face_to_view_vec = (view_pos - face_center).normalized();
 
-                /* Backface and basic frustum culling */
-                // float viewing_angle = face_to_view_vec.dot(face_normal);
-                // if (viewing_angle < 0.0f || viewing_direction.dot(view_to_face_vec) < 0.0f)
-                //     continue;
 
-                // if (std::acos(viewing_angle) > MATH_DEG2RAD(75.0f))
-                //     continue;
-
-                /* Projects into the valid part of the TextureView? */
-                if (!texture_view->inside(v1, v2, v3))
-                    continue;
 
                 if (settings.geometric_visibility_test) {
                     /* Viewing rays do not collide? */
@@ -295,34 +293,24 @@ void
 postprocess_face_infos(Settings const & settings,
         FaceProjectionInfos * face_projection_infos,
         DataCosts * data_costs) {
-    // std::cout << " - added - Postprocessing" << std::endl;
     ProgressCounter face_counter("\tPostprocessing face infos",
         face_projection_infos->size());
 
-    // std::cout << "- added - PP2" <<  face_projection_infos->size() << std::endl;
     #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < face_projection_infos->size(); ++i) {
-        // std::cout << i <<"start" << std::endl;
         face_counter.progress<SIMPLE>();
-        // std::cout << i <<"count" << std::endl;
         std::vector<FaceProjectionInfo> & infos = face_projection_infos->at(i);
         if (settings.outlier_removal != OUTLIER_REMOVAL_NONE) {
-            // std::cout << "- added - outlier detection " << i << std::endl;
             photometric_outlier_detection(&infos, settings);
-            // std::cout << "- added - completed outlier detection" << std::endl;
             infos.erase(std::remove_if(infos.begin(), infos.end(),
                 [](FaceProjectionInfo const & info) -> bool {return info.quality == 0.0f;}),
                 infos.end());
-            // std::cout << "- added - erased" << std::endl;
         }
         std::sort(infos.begin(), infos.end());
 
         face_counter.inc();
-        // std::cout << i <<"end" << std::endl;
-        // std::cout << "- added - looping" << std::endl;
     }
 
-    // std::cout << "- added - normalizing" << std::endl;
     /* Determine the function for the normlization. */
     float max_quality = 0.0f;
     for (std::size_t i = 0; i < face_projection_infos->size(); ++i)

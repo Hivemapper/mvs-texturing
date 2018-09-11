@@ -67,7 +67,7 @@ class TextureAtlas {
 
 inline uint compute_local_padding(uint base_width, uint base_height, uint max_padding) {
     uint size = std::max(base_width, base_height);
-    uint local_padding = std::min(std::max(2u, size / 2u), max_padding);
+    uint local_padding = std::min(std::max(2u, size / 8u), max_padding);
     return local_padding;
 }
 

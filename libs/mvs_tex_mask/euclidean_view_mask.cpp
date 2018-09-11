@@ -176,13 +176,16 @@ void EuclideanViewMask::getTriangleVoxels(const vector<Eigen::Matrix<double, 3, 
         maxes[j] = vv[j];
     }
   }
+  Eigen::Matrix<double, 3, 1> v0 = coord_transform*(vertices[0] - vmin);
+  Eigen::Matrix<double, 3, 1> v1 = coord_transform*(vertices[1] - vmin);
+  Eigen::Matrix<double, 3, 1> v2 = coord_transform*(vertices[2] - vmin);
   for (int x = mins[0]; x <= maxes[0]; ++x) {
     for (int y = mins[1]; y <= maxes[1]; ++y) {
       for (int z = mins[2]; z <= maxes[2]; ++z) {
         TriangleCell::Triangle3 t;
-        t.v1 = TriangleCell::Point3(vertices[0][0]-x-0.5, vertices[0][1]-y-0.5, vertices[0][2]-z-0.5);
-        t.v2 = TriangleCell::Point3(vertices[1][0]-x-0.5, vertices[1][1]-y-0.5, vertices[1][2]-z-0.5);
-        t.v3 = TriangleCell::Point3(vertices[2][0]-x-0.5, vertices[2][1]-y-0.5, vertices[2][2]-z-0.5);
+        t.v1 = TriangleCell::Point3(v0[0]-x-0.5, v0[1]-y-0.5, v0[2]-z-0.5);
+        t.v2 = TriangleCell::Point3(v1[0]-x-0.5, v1[1]-y-0.5, v1[2]-z-0.5);
+        t.v3 = TriangleCell::Point3(v2[0]-x-0.5, v2[1]-y-0.5, v2[2]-z-0.5);
         int is_outside = triangleCellIntersection(t);
         if (is_outside == 0)
           voxels.push_back({x, y, z});
