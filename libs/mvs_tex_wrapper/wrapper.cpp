@@ -32,6 +32,9 @@ void textureMesh(const TextureSettings& texture_settings,
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
 
+    std::cout << "Texturing ...\n Eigen version:" << std::endl;
+    std::cout << EIGEN_WORLD_VERSION << "." << EIGEN_MAJOR_VERSION << "." << EIGEN_MINOR_VERSION<< std::endl;
+
     std::string data_cost_file = "";
     std::string labeling_file = "";
 
