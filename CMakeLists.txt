@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 
-set(MVS_TEX_VERSION 1.0.3)
+set(MVS_TEX_VERSION 1.0.4)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/elibs/tbb")
 

@@ -43,8 +43,10 @@ TexturePatch::TexturePatch(TexturePatch const & texture_patch, const std::vector
     // assert(texture_patch.faces.size() == texture_patch.texcoords.size());
     faces.clear();
     texcoords.clear();
+    float pre_x_max, pre_y_max, pre_x_min, pre_y_min, post_x_max, post_y_max, post_x_min, post_y_min;
+    pre_x_max = pre_y_max = post_x_max = post_y_max = 0;
+    pre_x_min = pre_y_min = post_x_min = post_y_min = 1e6;
     for (std::size_t i = 0; i < texture_patch.faces.size(); i ++) {
-        
         bool valid = (new_face_indices[texture_patch.faces[i]] != std::numeric_limits<std::size_t>::max());
         if (valid) {
             faces.push_back(new_face_indices[texture_patch.faces[i]]);
@@ -54,10 +56,56 @@ TexturePatch::TexturePatch(TexturePatch const & texture_patch, const std::vector
         }
     }
 
-    image = texture_patch.image->duplicate();
-    validity_mask = texture_patch.validity_mask->duplicate();
-    if (texture_patch.blending_mask != NULL) {
-        blending_mask = texture_patch.blending_mask->duplicate();
+    bool resize = false;
+    if (texcoords.size() > 0 && texcoords.size() != texture_patch.texcoords.size()) {
+        for (std::size_t i = 0; i < texture_patch.texcoords.size(); ++i) {
+            pre_x_max = std::max(pre_x_max, texture_patch.texcoords[i][0]);
+            pre_x_min = std::min(pre_x_min, texture_patch.texcoords[i][0]);
+            pre_y_max = std::max(pre_y_max, texture_patch.texcoords[i][1]);
+            pre_y_min = std::min(pre_y_min, texture_patch.texcoords[i][1]);
+        }
+        for (std::size_t i = 0; i < texcoords.size(); ++i) {
+            post_x_max = std::max(post_x_max, texcoords[i][0]);
+            post_x_min = std::min(post_x_min, texcoords[i][0]);
+            post_y_max = std::max(post_y_max, texcoords[i][1]);
+            post_y_min = std::min(post_y_min, texcoords[i][1]);
+        }
+        float threshold = 5.0;
+        if (pre_x_max - post_x_max > threshold || pre_y_max - post_y_max > threshold || 
+            post_x_min - pre_x_min > threshold || post_y_min - pre_y_min > threshold) {
+            resize = true;
+        }
+    } 
+    if (!resize) {
+        image = texture_patch.image->duplicate();
+        validity_mask = texture_patch.validity_mask->duplicate();
+        if (texture_patch.blending_mask != NULL) {
+            blending_mask = texture_patch.blending_mask->duplicate();
+        }
+    } else {
+        int new_x_start = std::max(0, (int)std::floor(post_x_min - 2));
+        int new_y_start = std::max(0, (int)std::floor(post_y_min - 2));
+        int new_x_width = std::min(texture_patch.image->width(), (int)std::ceil(post_x_max + 2)) - new_x_start;
+        int new_y_width = std::min(texture_patch.image->height(), (int)std::ceil(post_y_max + 2)) - new_y_start;
+        int n_im_channels = texture_patch.image->channels();
+        int n_vm_channels = texture_patch.validity_mask->channels();
+        image = mve::FloatImage::create(new_x_width, new_y_width, n_im_channels);
+
+        validity_mask = mve::ByteImage::create(new_x_width, new_y_width, n_vm_channels);
+        for (int xi = 0; xi < new_x_width; ++xi) {
+            for (int yi = 0; yi < new_y_width; ++yi) {
+                for (int ci = 0; ci < n_im_channels; ++ci) {
+                    image->at(xi,yi,ci) = texture_patch.image->at(xi+new_x_start, yi+new_y_start, ci);
+                }
+                for (int ci = 0; ci < n_vm_channels; ++ci) {
+                    validity_mask->at(xi,yi,ci) = texture_patch.validity_mask->at(xi+new_x_start, yi+new_y_start, ci);
+                }
+            }
+        }
+        for (auto& coord : texcoords) {
+            coord[0] -= new_x_start;
+            coord[1] -= new_y_start;
+        }
     }
 }
 
