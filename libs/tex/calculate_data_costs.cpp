@@ -148,7 +148,7 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
     std::cout << "\tBuilding BVH from " << faces.size() / 3 << " faces... " << std::flush;
     BVHTree bvh_tree(faces, vertices);
     std::cout << "done. (Took: " << timer.get_elapsed() << " ms)" << std::endl;
-
+    FaceProjectionInfos invisible_faces(face_projection_infos->size());
     ProgressCounter view_counter("\tCalculating face qualities", num_views);
     #pragma omp parallel
     {
@@ -229,10 +229,10 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
                 math::Vec3f face_to_view_vec = (view_pos - face_center).normalized();
 
 
-
+                bool visible = true;
                 if (settings.geometric_visibility_test) {
                     /* Viewing rays do not collide? */
-                    bool visible = true;
+                    
                     math::Vec3f const * samples[] = {&v1, &v2, &v3};
                     // TODO: random monte carlo samples...
 
@@ -250,10 +250,10 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
                             break;
                         }
                     }
-                    if (!visible) continue;
+                    // if (!visible) continue;
                 }
 
-                FaceProjectionInfo info = {j, 0.0f, math::Vec3f(0.0f, 0.0f, 0.0f)};
+                FaceProjectionInfo info = {j, 0.0f, math::Vec3f(0.0f, 0.0f, 0.0f), visible};
 
                 /* Calculate quality. */
                 texture_view->get_face_info(v1, v2, v3, &info, settings);
@@ -282,9 +282,21 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
             for (std::size_t i = projected_face_view_infos.size(); 0 < i; --i) {
                 std::size_t face_id = projected_face_view_infos[i - 1].first;
                 FaceProjectionInfo const & info = projected_face_view_infos[i - 1].second;
-                face_projection_infos->at(face_id).push_back(info);
+                if (info.visible)
+                    face_projection_infos->at(face_id).push_back(info);
+                else
+                    invisible_faces[face_id].push_back(info);
             }
             projected_face_view_infos.clear();
+        }
+    }
+    if (settings.geometric_visibility_test) {
+        for (std::size_t i = 0; i < face_projection_infos->size(); ++i) {
+            if (face_projection_infos->at(i).empty()) {
+                for (const auto& info : invisible_faces[i]) {
+                    face_projection_infos->at(i).push_back(info);
+                }
+            }
         }
     }
 }
