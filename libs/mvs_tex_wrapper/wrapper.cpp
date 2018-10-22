@@ -231,6 +231,11 @@ void textureMesh(const TextureSettings& texture_settings,
         mve::TriangleMesh::Ptr sub_mesh = mesh->duplicate();
         sub_mesh->delete_vertices_fix_faces(inverted_mask);
 
+        if (sub_mesh->get_faces().size() == 0) {
+            std::cout << "No Faces - skipping Sub-Model " << sub_name << std::endl;
+            continue;
+        }
+
         std::cout << "Model includes " << sub_mesh->get_faces().size()/3 << " of "
                   << mesh->get_faces().size()/3 << " faces." << std::endl;
 
@@ -245,9 +250,14 @@ void textureMesh(const TextureSettings& texture_settings,
                 patch_ct++;
             }
         }
-                std::cout << "And " << sub_texture_patches.size() << " of "
-                  << texture_patches.size() << " patches." << std::endl;
+       
 
+        if (texture_patches.size() == 0) {
+            std::cout << "No Texture Patches - skipping Sub-Model " << sub_name << std::endl;
+            continue;
+        }
+         std::cout << "And " << sub_texture_patches.size() << " of "
+          << texture_patches.size() << " patches." << std::endl;
         {
             /* Generate texture atlases. */
             std::cout << "Generating texture atlases:" << std::endl;
