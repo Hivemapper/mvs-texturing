@@ -57,6 +57,8 @@ class TexturePatch {
 
         TexturePatch::Ptr duplicate(void);
 
+        void rescale(double ratio);
+
         /** Adjust the image colors and update validity mask. */
         void adjust_colors(std::vector<math::Vec3f> const & adjust_values);
 
@@ -91,6 +93,10 @@ class TexturePatch {
         int get_width(void) const;
         int get_height(void) const;
         int get_size(void) const;
+
+        double compute_geometric_area(const std::vector<math::Vec3f>& vertices,
+                                      const std::vector<uint>& mesh_faces) const;
+        double compute_pixel_area() const;
 };
 
 inline TexturePatch::Ptr

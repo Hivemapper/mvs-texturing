@@ -31,5 +31,6 @@ void textureMesh(const TextureSettings& texture_settings,
                  const std::string& out_prefix,
                  const std::vector<std::vector<bool>>& sub_vert_masks,
                  const std::vector<std::string>& sub_names,
-                 std::shared_ptr<EuclideanViewMask> ev_mask = NULL);
+                 std::shared_ptr<EuclideanViewMask> ev_mask = NULL,
+                 uint atlas_size = 0);
 }  // namespace MvsTexturing

@@ -108,7 +108,16 @@ local_seam_leveling(UniGraph const & graph, mve::TriangleMesh::ConstPtr mesh,
 
 void
 generate_texture_atlases(TexturePatches * texture_patches,
-    Settings const & settings, TextureAtlases * texture_atlases);
+    Settings const & settings, TextureAtlases * texture_atlases, const std::vector<math::Vec3f>& vertices,
+                         const std::vector<uint>& mesh_faces);
+
+void
+generate_capped_texture_atlas(std::vector<TexturePatch::Ptr> * orig_texture_patches,
+                         Settings const & settings,
+                         std::vector<TextureAtlas::Ptr> * texture_atlases,
+                         uint atlas_size,
+                         const std::vector<math::Vec3f>& vertices,
+                         const std::vector<uint>& faces);
 
 /**
   * Builds up an model for the mesh by constructing materials and

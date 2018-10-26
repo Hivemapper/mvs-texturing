@@ -38,9 +38,6 @@ TexturePatch::TexturePatch(TexturePatch const & texture_patch) {
 
 TexturePatch::TexturePatch(TexturePatch const & texture_patch, const std::vector<std::size_t>& new_face_indices) {
     label = texture_patch.label;
-    // std::cout << new_face_indices.size() << std::endl;
-    // std::cout << texture_patch.faces.size() << " - " << texture_patch.texcoords.size() << std::endl;
-    // assert(texture_patch.faces.size() == texture_patch.texcoords.size());
     faces.clear();
     texcoords.clear();
     float pre_x_max, pre_y_max, pre_x_min, pre_y_min, post_x_max, post_y_max, post_x_min, post_y_min;
@@ -71,11 +68,12 @@ TexturePatch::TexturePatch(TexturePatch const & texture_patch, const std::vector
             post_y_min = std::min(post_y_min, texcoords[i][1]);
         }
         float threshold = 5.0;
-        if (pre_x_max - post_x_max > threshold || pre_y_max - post_y_max > threshold || 
+        if (pre_x_max - post_x_max > threshold || pre_y_max - post_y_max > threshold ||
             post_x_min - pre_x_min > threshold || post_y_min - pre_y_min > threshold) {
             resize = true;
         }
-    } 
+    }
+
     if (!resize) {
         image = texture_patch.image->duplicate();
         validity_mask = texture_patch.validity_mask->duplicate();
@@ -109,14 +107,92 @@ TexturePatch::TexturePatch(TexturePatch const & texture_patch, const std::vector
     }
 }
 
+// Custom implementation of area interpolation based rescaling for nice moire-free patch shrinking
+mve::FloatImage::Ptr
+rescale_area(mve::FloatImage::Ptr input_image, const int new_width, const int new_height) {
+    mve::FloatImage::Ptr out_image(mve::FloatImage::create());
+    out_image->allocate(new_width, new_height, input_image->channels());
+    out_image->fill(0.0);
+    const int old_width = input_image->width();
+    const int old_height = input_image->height();
+    const float x_scale = new_width/(float)old_width;
+    const float y_scale = new_height/(float)old_height;
+    assert(new_width <= old_width);
+    assert(new_height <= old_height);
+    for (int ci = 0; ci < input_image->channels(); ++ci) {
+        for (int y = 0; y < old_height; ++y) {
+            float y_low = y*y_scale;
+            float y_prop = std::min(1.0, (floor(y_low) + 1 - y_low)/y_scale);
+            for (int x = 0; x < old_width; ++x) {
+                
+                float x_low = x*x_scale;
+                float x_high = (x+1)*x_scale;
+
+                float x_prop = std::min(1.0, (floor(x_low) + 1 - x_low)/x_scale);
+                
+                float val = input_image->at(x, y, ci)*x_scale*y_scale;
+                if (x_prop > 0.999 && y_prop > 0.999) {
+                    out_image->at((int) x_low, (int) y_low, ci) += val;
+                } else if (x_prop > 0.999) {
+                    out_image->at((int) x_low, (int) y_low, ci) += val*y_prop;
+                    out_image->at((int) x_low, (int) y_low+1, ci) += val*(1-y_prop);
+                } else if (y_prop > 0.999) {
+                    out_image->at((int) x_low, (int) y_low, ci) += val*x_prop;
+                    out_image->at((int) x_low+1, (int) y_low, ci) += val*(1-x_prop);
+                } else {
+
+                    // std::cout << x_low << ", " << x_prop << " -- " << y_low << ", " << y_prop << std::endl;
+                    out_image->at((int) x_low, (int) y_low, ci) += val*x_prop*y_prop;
+                    out_image->at((int) x_low+1, (int) y_low, ci) += val*(1-x_prop)*y_prop;
+                    out_image->at((int) x_low, (int) y_low+1, ci) += val*x_prop*(1-y_prop);
+                    out_image->at((int) x_low+1, (int) y_low+1, ci) += val*(1-x_prop)*(1-y_prop);
+                }
+            }
+        }
+    }
+    return out_image;
+}
+
+
+// Rescale a patch and underlying imagery.
+void TexturePatch::rescale(double ratio) {
+    int old_width = get_width();
+    int old_height = get_height();
+    int new_width = std::ceil(old_width*ratio);
+    int new_height = std::ceil(old_height*ratio);
+    double width_mult = (new_width-texture_patch_border)/(double)(old_width-texture_patch_border);
+    double height_mult = (new_height-texture_patch_border)/(double)(old_height-texture_patch_border);
+    // image = mve::image::rescale<float>(image, mve::image::RescaleInterpolation::RESCALE_LINEAR, new_width, new_height);
+    image = rescale_area(image, new_width, new_height);
+    // not sure these rescales are ideal. If this happens before masking it's wasted, if this happens after I'm not sure it works well.
+    if (validity_mask!= NULL) {
+        validity_mask = mve::image::rescale<uint8_t>(validity_mask,
+                                                     mve::image::RescaleInterpolation::RESCALE_NEAREST,
+                                                     new_width,
+                                                     new_height);
+    }
+    if (blending_mask != NULL) {
+        blending_mask = mve::image::rescale<uint8_t>(blending_mask,
+                                                     mve::image::RescaleInterpolation::RESCALE_NEAREST,
+                                                     new_width,
+                                                     new_height);
+    }
+    for (math::Vec2f& coord : texcoords) {
+        coord[0] *= height_mult;
+        coord[1] *= width_mult;
+    }
+    assert(get_width() == validity_mask->width());
+    assert(get_height() == validity_mask->height());
+    assert(get_width() == blending_mask->width());
+    assert(get_height() == blending_mask->height());
+}
+
 const float sqrt_2 = sqrt(2);
 
 void
 TexturePatch::adjust_colors(std::vector<math::Vec3f> const & adjust_values) {
     assert(blending_mask != NULL);
-
     validity_mask->fill(0);
-
     mve::FloatImage::Ptr iadjust_values = mve::FloatImage::create(get_width(), get_height(), 3);
     for (std::size_t i = 0; i < texcoords.size(); i += 3) {
         math::Vec2f v1 = texcoords[i];
@@ -133,6 +209,7 @@ TexturePatch::adjust_colors(std::vector<math::Vec3f> const & adjust_values) {
         int const min_y = static_cast<int>(std::floor(aabb.min_y)) - texture_patch_border;
         int const max_x = static_cast<int>(std::ceil(aabb.max_x)) + texture_patch_border;
         int const max_y = static_cast<int>(std::ceil(aabb.max_y)) + texture_patch_border;
+
         assert(0 <= min_x && max_x <= get_width());
         assert(0 <= min_y && max_y <= get_height());
 
@@ -162,7 +239,6 @@ TexturePatch::adjust_colors(std::vector<math::Vec3f> const & adjust_values) {
 
                     if (ha > sqrt_2 || hb > sqrt_2 || hc > sqrt_2)
                         continue;
-
                     for (int c = 0; c < 3; ++c) {
                         iadjust_values->at(x, y, c) = math::interpolate(
                             adjust_values[i][c], adjust_values[i + 1][c], adjust_values[i + 2][c],
@@ -239,6 +315,28 @@ TexturePatch::get_pixel_value(math::Vec2f pixel) const {
     math::Vec3f color;
     image->linear_at(pixel[0], pixel[1], *color);
     return color;
+}
+
+double
+TexturePatch::compute_geometric_area(const std::vector<math::Vec3f>& vertices,
+                                            const std::vector<uint>& mesh_faces) const {
+    double total_area = 0;
+    for (auto f : faces) {
+        total_area += std::abs(math::geom::triangle_area(vertices[mesh_faces[f * 3 + 0]],
+                                             vertices[mesh_faces[f * 3 + 1]],
+                                             vertices[mesh_faces[f * 3 + 2]]));
+    }
+    return total_area;
+}
+
+double
+TexturePatch::compute_pixel_area() const {
+    double total_area = 0;
+    for (std::size_t i = 0; i < faces.size(); ++i) {
+        Tri tri(texcoords[i*3], texcoords[i*3+1], texcoords[i*3+2]);
+        total_area += tri.get_area();
+    }
+    return total_area;
 }
 
 void

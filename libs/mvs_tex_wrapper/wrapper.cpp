@@ -27,7 +27,8 @@ void textureMesh(const TextureSettings& texture_settings,
                  const std::string& out_prefix,
                  const std::vector<std::vector<bool>>& sub_vert_masks,
                  const std::vector<std::string>& sub_names,
-                 std::shared_ptr<EuclideanViewMask> ev_mask) {
+                 std::shared_ptr<EuclideanViewMask> ev_mask,
+                 uint atlas_size) {
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
@@ -45,6 +46,8 @@ void textureMesh(const TextureSettings& texture_settings,
     // Prep Filesystem + load data
     //
 
+    if (atlas_size == 0)
+        atlas_size = 4096;
     std::string const out_dir = util::fs::dirname(out_prefix);
 
     if (!util::fs::dir_exists(out_dir.c_str())) {
@@ -210,7 +213,7 @@ void textureMesh(const TextureSettings& texture_settings,
     }
 
     // Now loop, generating+saving subindexed meshes and atlas
-    #pragma omp parallel for schedule(dynamic)
+    // #pragma omp parallel for schedule(dynamic)
     for (int vi = 0; vi < sub_vert_masks.size(); ++vi) {
         std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi+1 << " of " << sub_vert_masks.size() << std::endl;
         tex::TextureAtlases sub_texture_atlases;
@@ -250,7 +253,7 @@ void textureMesh(const TextureSettings& texture_settings,
                 patch_ct++;
             }
         }
-       
+
 
         if (texture_patches.size() == 0) {
             std::cout << "No Texture Patches - skipping Sub-Model " << sub_name << std::endl;
@@ -261,7 +264,12 @@ void textureMesh(const TextureSettings& texture_settings,
         {
             /* Generate texture atlases. */
             std::cout << "Generating texture atlases:" << std::endl;
-            tex::generate_texture_atlases(&sub_texture_patches, settings, &sub_texture_atlases);
+            tex::generate_capped_texture_atlas(&sub_texture_patches,
+                                               settings,
+                                               &sub_texture_atlases,
+                                               atlas_size,
+                                               mesh->get_vertices(),
+                                               mesh->get_faces());
         }
 
         /* Create and write out obj model. */
