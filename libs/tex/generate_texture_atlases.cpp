@@ -8,7 +8,6 @@
  */
 
 #include <set>
-#include <list>
 #include <iostream>
 #include <fstream>
 
@@ -34,61 +33,6 @@ TEX_NAMESPACE_BEGIN
   * 
   * TODO: remove stupid hacky duplication once code is stable.
   */
-unsigned int
-calculate_texture_size(std::list<TexturePatch::ConstPtr> const & texture_patches) {
-    unsigned int size = MAX_TEXTURE_SIZE;
-
-    while (true) {
-        unsigned int total_area = 0;
-        unsigned int max_width = 0;
-        unsigned int max_height = 0;
-        unsigned int padding = std::min(8u, size >> 8);
-
-        for (TexturePatch::ConstPtr texture_patch : texture_patches) {
-            uint local_padding = compute_local_padding(texture_patch->get_width(), texture_patch->get_height(), padding);
-            unsigned int width = texture_patch->get_width() + 2 * local_padding;
-            unsigned int height = texture_patch->get_height() + 2 * local_padding;
-
-            max_width = std::max(max_width, width);
-            max_height = std::max(max_height, height);
-
-            unsigned int area = width * height;
-            unsigned int waste = area - texture_patch->get_size();
-
-            // /* Only consider patches where the information dominates padding. */
-            // if (static_cast<double>(waste) / texture_patch->get_size() > 1.0) {
-            //      Since the patches are sorted by size we can assume that only
-            //      * few further patches will contribute to the size and break.
-            //     break;
-            // }
-
-            total_area += area;
-        }
-
-        assert(max_width < MAX_TEXTURE_SIZE);
-        assert(max_height < MAX_TEXTURE_SIZE);
-        if (size > PREF_TEXTURE_SIZE &&
-            max_width < PREF_TEXTURE_SIZE &&
-            max_height < PREF_TEXTURE_SIZE &&
-            total_area / (PREF_TEXTURE_SIZE * PREF_TEXTURE_SIZE) < 8) {
-            size = PREF_TEXTURE_SIZE;
-            continue;
-        }
-
-        if (size <= MIN_TEXTURE_SIZE) {
-            return MIN_TEXTURE_SIZE;
-        }
-
-        if (max_height < size / 2 && max_width < size / 2 &&
-            static_cast<double>(total_area) / (size * size) < 0.2) {
-            size = size / 2;
-            continue;
-        }
-
-        return size;
-    }
-}
-
 unsigned int
 calculate_texture_size(std::vector<TexturePatch::ConstPtr> const & texture_patches) {
     unsigned int size = MAX_TEXTURE_SIZE;
@@ -234,7 +178,7 @@ generate_texture_atlases(std::vector<TexturePatch::Ptr> * orig_texture_patches,
                          const std::vector<math::Vec3f>& vertices,
                          const std::vector<uint>& faces) {
 
-    std::list<TexturePatch::ConstPtr> texture_patches;
+    std::vector<TexturePatch::ConstPtr> texture_patches;
     while (!orig_texture_patches->empty()) {
         TexturePatch::Ptr texture_patch = orig_texture_patches->back();
         orig_texture_patches->pop_back();
@@ -244,27 +188,13 @@ generate_texture_atlases(std::vector<TexturePatch::Ptr> * orig_texture_patches,
         }
 
         texture_patches.push_back(texture_patch);
-
-        // resizing code - prob shouldn't live here long term
-        double ga = texture_patch->compute_geometric_area(vertices, faces);
-        double pa = texture_patch->compute_pixel_area();
-        double current_ratio = pa/ga;
-        double target_ratio = 64;
-        std::cout << "\t" << pa << " / " << ga << " = " << pa/ga << std::endl;
-        if (current_ratio > target_ratio) {
-            texture_patch->rescale(std::sqrt(target_ratio/current_ratio));
-            // texture_patches[i]->rescale(2.0);
-            ga = texture_patch->compute_geometric_area(vertices, faces);
-            pa = texture_patch->compute_pixel_area();
-            current_ratio = pa/ga;
-            std::cout << "\t" << pa << " / " << ga << " = " << pa/ga << std::endl;
-        }
     }
+
 
     std::cout << "\tSorting texture patches... " << std::flush;
     /* Improve the bin-packing algorithm efficiency by sorting texture patches
      * in descending order of size. */
-    texture_patches.sort(comp);
+    std::sort(texture_patches.begin(), texture_patches.end(), comp);
     std::cout << "done." << std::endl;
 
     std::size_t const total_num_patches = texture_patches.size();
@@ -283,7 +213,7 @@ generate_texture_atlases(std::vector<TexturePatch::Ptr> * orig_texture_patches,
         TextureAtlas::Ptr texture_atlas = texture_atlases->back();
 
         /* Try to insert each of the texture patches into the texture atlas. */
-        std::list<TexturePatch::ConstPtr>::iterator it = texture_patches.begin();
+        auto it = texture_patches.begin();
         for (; it != texture_patches.end();) {
             std::size_t done_patches = total_num_patches - remaining_patches;
             int precent = static_cast<float>(done_patches)

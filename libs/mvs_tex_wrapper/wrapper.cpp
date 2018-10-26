@@ -213,7 +213,7 @@ void textureMesh(const TextureSettings& texture_settings,
     }
 
     // Now loop, generating+saving subindexed meshes and atlas
-    // #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic)
     for (int vi = 0; vi < sub_vert_masks.size(); ++vi) {
         std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi+1 << " of " << sub_vert_masks.size() << std::endl;
         tex::TextureAtlases sub_texture_atlases;
@@ -223,13 +223,9 @@ void textureMesh(const TextureSettings& texture_settings,
             inverted_mask[i] = !vertex_mask[i];
 
         const std::string& sub_name(sub_names[vi]);
-        // std::vector<std::size_t> vertex_indices;
         std::vector<std::size_t> face_indices;
-        // generate_vertex_reindex(vertex_mask, vertex_indices);
-        generate_face_reindex(vertex_mask, mesh->get_faces(), face_indices);
-
         // generate face reindex
-
+        generate_face_reindex(vertex_mask, mesh->get_faces(), face_indices);
         // redo mesh
         mve::TriangleMesh::Ptr sub_mesh = mesh->duplicate();
         sub_mesh->delete_vertices_fix_faces(inverted_mask);
@@ -253,7 +249,6 @@ void textureMesh(const TextureSettings& texture_settings,
                 patch_ct++;
             }
         }
-
 
         if (texture_patches.size() == 0) {
             std::cout << "No Texture Patches - skipping Sub-Model " << sub_name << std::endl;

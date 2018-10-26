@@ -90,12 +90,16 @@ TexturePatch::TexturePatch(TexturePatch const & texture_patch, const std::vector
         image = mve::FloatImage::create(new_x_width, new_y_width, n_im_channels);
 
         validity_mask = mve::ByteImage::create(new_x_width, new_y_width, n_vm_channels);
-        for (int xi = 0; xi < new_x_width; ++xi) {
+        for (int ci = 0; ci < n_im_channels; ++ci) {
             for (int yi = 0; yi < new_y_width; ++yi) {
-                for (int ci = 0; ci < n_im_channels; ++ci) {
+                for (int xi = 0; xi < new_x_width; ++xi) {
                     image->at(xi,yi,ci) = texture_patch.image->at(xi+new_x_start, yi+new_y_start, ci);
                 }
-                for (int ci = 0; ci < n_vm_channels; ++ci) {
+            }
+        }
+        for (int ci = 0; ci < n_vm_channels; ++ci) {
+            for (int yi = 0; yi < new_y_width; ++yi) {
+                for (int xi = 0; xi < new_x_width; ++xi) {
                     validity_mask->at(xi,yi,ci) = texture_patch.validity_mask->at(xi+new_x_start, yi+new_y_start, ci);
                 }
             }
@@ -153,7 +157,6 @@ rescale_area(mve::FloatImage::Ptr input_image, const int new_width, const int ne
     return out_image;
 }
 
-
 // Rescale a patch and underlying imagery.
 void TexturePatch::rescale(double ratio) {
     int old_width = get_width();
@@ -209,7 +212,6 @@ TexturePatch::adjust_colors(std::vector<math::Vec3f> const & adjust_values) {
         int const min_y = static_cast<int>(std::floor(aabb.min_y)) - texture_patch_border;
         int const max_x = static_cast<int>(std::ceil(aabb.max_x)) + texture_patch_border;
         int const max_y = static_cast<int>(std::ceil(aabb.max_y)) + texture_patch_border;
-
         assert(0 <= min_x && max_x <= get_width());
         assert(0 <= min_y && max_y <= get_height());
 
