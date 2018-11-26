@@ -134,7 +134,8 @@ bool photometric_outlier_detection(std::vector<FaceProjectionInfo> * infos, Sett
 void
 calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
     std::vector<TextureView> * texture_views, Settings const & settings,
-    FaceProjectionInfos * face_projection_infos, std::shared_ptr<MvsTexturing::EuclideanViewMask> ev_mask) {
+    FaceProjectionInfos * face_projection_infos, std::shared_ptr<MvsTexturing::EuclideanViewMask> ev_mask,
+    float* hidden_face_proportion = NULL) {
 
     std::vector<unsigned int> const & faces = mesh->get_faces();
     std::vector<math::Vec3f> const & vertices = mesh->get_vertices();
@@ -217,7 +218,7 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
                         }
 
                     } catch (...) {
-                        std::cout << "Warning, point " << face_center[0] << ", " << face_center[1] << ", " << face_center[2] 
+                        std::cout << "Warning, point " << face_center[0] << ", " << face_center[1] << ", " << face_center[2]
                             << " outside mask domain"<< std::endl;
                         continue;
                     }
@@ -232,7 +233,7 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
                 bool visible = true;
                 if (settings.geometric_visibility_test) {
                     /* Viewing rays do not collide? */
-                    
+
                     math::Vec3f const * samples[] = {&v1, &v2, &v3};
                     // TODO: random monte carlo samples...
 
@@ -290,15 +291,26 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
             projected_face_view_infos.clear();
         }
     }
+    // We compute the number of faces occluded by geometry since this information can be
+    // used to detect broken layered reconstructions.
+    uint occluded_face_ct = 0;
+    uint unseen_face_ct = 0;
     if (settings.geometric_visibility_test) {
         for (std::size_t i = 0; i < face_projection_infos->size(); ++i) {
             if (face_projection_infos->at(i).empty()) {
                 for (const auto& info : invisible_faces[i]) {
                     face_projection_infos->at(i).push_back(info);
                 }
+                if (face_projection_infos->at(i).empty())
+                    unseen_face_ct++;
+                else
+                    occluded_face_ct++;
             }
         }
     }
+    if (settings.geometric_visibility_test && hidden_face_proportion != NULL)
+        *hidden_face_proportion = occluded_face_ct /
+            static_cast<double>(face_projection_infos->size() - unseen_face_ct);
 }
 
 void
@@ -356,7 +368,7 @@ postprocess_face_infos(Settings const & settings,
 
 void
 calculate_data_costs(mve::TriangleMesh::ConstPtr mesh, std::vector<TextureView> * texture_views,
-    Settings const & settings, DataCosts * data_costs, std::shared_ptr<MvsTexturing::EuclideanViewMask> ev_mask) {
+    Settings const & settings, DataCosts * data_costs, std::shared_ptr<MvsTexturing::EuclideanViewMask> ev_mask, float* hidden_face_proportion) {
     std::size_t const num_faces = mesh->get_faces().size() / 3;
     std::size_t const num_views = texture_views->size();
 
@@ -368,7 +380,7 @@ calculate_data_costs(mve::TriangleMesh::ConstPtr mesh, std::vector<TextureView> 
         throw std::runtime_error("No valid views found - camera parameters may be incorrect");
 
     FaceProjectionInfos face_projection_infos(num_faces);
-    calculate_face_projection_infos(mesh, texture_views, settings, &face_projection_infos, ev_mask);
+    calculate_face_projection_infos(mesh, texture_views, settings, &face_projection_infos, ev_mask, hidden_face_proportion);
     // std::cout << "- added - Postprocessing - first" << std::endl;
     postprocess_face_infos(settings, &face_projection_infos, data_costs);
 }

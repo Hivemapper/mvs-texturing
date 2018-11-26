@@ -28,7 +28,8 @@ void textureMesh(const TextureSettings& texture_settings,
                  const std::vector<std::vector<bool>>& sub_vert_masks,
                  const std::vector<std::string>& sub_names,
                  std::shared_ptr<EuclideanViewMask> ev_mask,
-                 uint atlas_size) {
+                 uint atlas_size,
+                 float* hidden_face_proportion) {
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
@@ -117,7 +118,7 @@ void textureMesh(const TextureSettings& texture_settings,
         tex::DataCosts data_costs(num_faces, texture_views.size());
         if (data_cost_file.empty()) {
             // std::cout << "- added - Calculating Data costs" << std::endl;
-            tex::calculate_data_costs(mesh, &texture_views, settings, &data_costs, ev_mask);
+            tex::calculate_data_costs(mesh, &texture_views, settings, &data_costs, ev_mask, hidden_face_proportion);
 
             if (write_intermediate_results) {
                 std::cout << "\tWriting data cost file... " << std::flush;
