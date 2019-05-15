@@ -335,15 +335,12 @@ void generate_face_reindex(const std::vector<bool>& mask,
                 new_indices[back] = std::numeric_limits<std::size_t>::max();
                 --back;
             }
+            new_indices[front] = std::numeric_limits<std::size_t>::max();
             if (is_valid_tri(back, mask, old_faces)) {
                 // note - front may equal back here, but the desired behavior will still happen.
-                new_indices[front] = std::numeric_limits<std::size_t>::max();
                 new_indices[back] = front;
                 back--;
                 front++;
-            } else {
-                // we stopped because front equals back
-                new_indices[front] = std::numeric_limits<std::size_t>::max();
             }
         }
     }
