@@ -3,3 +3,5 @@ elibs/
 !elibs/CMakeLists/*
 !elibs/CMakeLists.txt
 bazel-*
+/.idea
+cmake-build-debug/
