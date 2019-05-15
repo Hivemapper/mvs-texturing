@@ -47,6 +47,7 @@ class TextureView {
         math::Matrix4f world_to_cam;
         int width;
         int height;
+        int channels;
         std::string image_file;
         mve::ByteImage::Ptr image;
         mve::ByteImage::Ptr gradient_magnitude;
@@ -85,6 +86,8 @@ class TextureView {
         int get_width(void) const;
         /** Returns the height of the corresponding image. */
         int get_height(void) const;
+        /** Returns the number of channels/colors in the corresponding image. */
+        int get_channels(void) const;
         /** Returns a reference pointer to the corresponding image. */
         mve::ByteImage::Ptr get_image(void) const;
 
@@ -143,6 +146,11 @@ TextureView::get_width(void) const {
 inline int
 TextureView::get_height(void) const {
     return height;
+}
+
+inline int
+TextureView::get_channels(void) const {
+  return channels;
 }
 
 inline mve::ByteImage::Ptr

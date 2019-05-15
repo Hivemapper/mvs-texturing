@@ -32,6 +32,7 @@ TextureView::TextureView(std::size_t id, mve::CameraInfo const & camera,
 
     width = header.width;
     height = header.height;
+    channels = header.channels;
 
     camera.fill_calibration(*projection, width, height);
     camera.fill_camera_pos(*pos);
