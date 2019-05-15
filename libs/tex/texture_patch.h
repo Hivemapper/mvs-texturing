@@ -53,7 +53,7 @@ class TexturePatch {
         static TexturePatch::Ptr create(int label, std::vector<std::size_t> const & faces,
             std::vector<math::Vec2f> const & texcoords, mve::FloatImage::Ptr image);
 
-
+        long object_class = 0;
 
         TexturePatch::Ptr duplicate(void);
 
@@ -61,9 +61,15 @@ class TexturePatch {
 
         /** Adjust the image colors and update validity mask. */
         void adjust_colors(std::vector<math::Vec3f> const & adjust_values);
+        void texture_object_colors(std::vector<math::Vec3f> const & adjust_values);
 
         math::Vec3f get_pixel_value(math::Vec2f pixel) const;
+        math::Vec10f get_pixel_value_n(math::Vec2f pixel) const;
         void set_pixel_value(math::Vec2i pixel, math::Vec3f color);
+        void set_pixel_value(math::Vec2i pixel, math::Vec10f color);
+        void set_pixel_object_class_value(math::Vec2i pixel, math::Vec10f color);
+        void set_object_class(math::Vec10f color);
+        math::Vec3f compute_object_class_color(math::Vec10f color);
 
         bool valid_pixel(math::Vec2i pixel) const;
         bool valid_pixel(math::Vec2f pixel) const;
@@ -92,6 +98,7 @@ class TexturePatch {
         void set_label(int l) {label = l;}
         int get_width(void) const;
         int get_height(void) const;
+        int get_channels(void) const;
         int get_size(void) const;
 
         double compute_geometric_area(const std::vector<math::Vec3f>& vertices,
@@ -133,6 +140,11 @@ TexturePatch::get_width(void) const {
 inline int
 TexturePatch::get_height(void) const {
     return image->height();
+}
+
+inline int
+TexturePatch::get_channels(void) const {
+  return image->channels();
 }
 
 inline mve::FloatImage::Ptr

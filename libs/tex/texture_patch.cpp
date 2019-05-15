@@ -196,7 +196,8 @@ void
 TexturePatch::adjust_colors(std::vector<math::Vec3f> const & adjust_values) {
     assert(blending_mask != NULL);
     validity_mask->fill(0);
-    mve::FloatImage::Ptr iadjust_values = mve::FloatImage::create(get_width(), get_height(), 3);
+    int num_channels = 3;
+    mve::FloatImage::Ptr iadjust_values = mve::FloatImage::create(get_width(), get_height(), num_channels);
     for (std::size_t i = 0; i < texcoords.size(); i += 3) {
         math::Vec2f v1 = texcoords[i];
         math::Vec2f v2 = texcoords[i + 1];
@@ -222,7 +223,7 @@ TexturePatch::adjust_colors(std::vector<math::Vec3f> const & adjust_values) {
                 bool inside = bcoords.minimum() >= 0.0f;
                 if (inside) {
                     assert(x != 0 && y != 0);
-                    for (int c = 0; c < 3; ++c) {
+                    for (int c = 0; c < num_channels; ++c) {
                         iadjust_values->at(x, y, c) = math::interpolate(
                             adjust_values[i][c], adjust_values[i + 1][c], adjust_values[i + 2][c],
                             bcoords[0], bcoords[1], bcoords[2]);
@@ -241,7 +242,7 @@ TexturePatch::adjust_colors(std::vector<math::Vec3f> const & adjust_values) {
 
                     if (ha > sqrt_2 || hb > sqrt_2 || hc > sqrt_2)
                         continue;
-                    for (int c = 0; c < 3; ++c) {
+                    for (int c = 0; c < num_channels; ++c) {
                         iadjust_values->at(x, y, c) = math::interpolate(
                             adjust_values[i][c], adjust_values[i + 1][c], adjust_values[i + 2][c],
                             bcoords[0], bcoords[1], bcoords[2]);
@@ -255,15 +256,113 @@ TexturePatch::adjust_colors(std::vector<math::Vec3f> const & adjust_values) {
 
     for (int i = 0; i < image->get_pixel_amount(); ++i) {
         if (validity_mask->at(i, 0) != 0){
-            for (int c = 0; c < 3; ++c) {
+            for (int c = 0; c < num_channels; ++c) {
                 image->at(i, c) += iadjust_values->at(i, c);
             }
         } else {
+            for (int c = 0; c < num_channels; ++c) {
+              image->at(i, c) = 0.0f;
+            }
+//            math::Vec3f color(0.0f, 0.0f, 0.0f);
+//            //DEBUG math::Vec3f color(1.0f, 0.0f, 1.0f);
+//            std::copy(color.begin(), color.end(), &image->at(i, 0));
+        }
+    }
+}
+
+// TODO this is too similar to the above--simplify them
+void
+TexturePatch::texture_object_colors(std::vector<math::Vec3f> const & adjust_values) {
+    assert(blending_mask != NULL);
+    validity_mask->fill(0);
+    int num_channels = 10;
+    mve::FloatImage::Ptr iadjust_values = mve::FloatImage::create(get_width(), get_height(), num_channels);
+    for (std::size_t i = 0; i < texcoords.size(); i += 3) {
+        math::Vec2f v1 = texcoords[i];
+        math::Vec2f v2 = texcoords[i + 1];
+        math::Vec2f v3 = texcoords[i + 2];
+
+        Tri tri(v1, v2, v3);
+
+        float area = tri.get_area();
+        if (area < std::numeric_limits<float>::epsilon()) continue;
+
+        Rect<float> aabb = tri.get_aabb();
+        int const min_x = static_cast<int>(std::floor(aabb.min_x)) - texture_patch_border;
+        int const min_y = static_cast<int>(std::floor(aabb.min_y)) - texture_patch_border;
+        int const max_x = static_cast<int>(std::ceil(aabb.max_x)) + texture_patch_border;
+        int const max_y = static_cast<int>(std::ceil(aabb.max_y)) + texture_patch_border;
+        assert(0 <= min_x && max_x <= get_width());
+        assert(0 <= min_y && max_y <= get_height());
+
+        for (int y = min_y; y < max_y; ++y) {
+            for (int x = min_x; x < max_x; ++x) {
+
+                math::Vec3f bcoords = tri.get_barycentric_coords(x, y);
+                bool inside = bcoords.minimum() >= 0.0f;
+//                math::Vec2i pixel(x, y);
+                if (inside) {
+                    assert(x != 0 && y != 0);
+                    for (int c = 0; c < num_channels; ++c) {
+                      iadjust_values->at(x, y, c) = math::interpolate(
+                          adjust_values[i][c], adjust_values[i + 1][c], adjust_values[i + 2][c],
+                          bcoords[0], bcoords[1], bcoords[2]);
+                    }
+//                    math::Vec3f color = compute_object_class_color(get_pixel_value_n(pixel));
+//                    std::copy(color.begin(), color.end(), &image->at(x, y, 0));
+                    validity_mask->at(x, y, 0) = 255;
+                    blending_mask->at(x, y, 0) = 255;
+                } else {
+
+                    if (validity_mask->at(x, y, 0) == 255)
+                        continue;
+
+                    /* Check whether the pixels distance from the triangle is more than one pixel. */
+                    float ha = 2.0f * -bcoords[0] * area / (v2 - v3).norm();
+                    float hb = 2.0f * -bcoords[1] * area / (v1 - v3).norm();
+                    float hc = 2.0f * -bcoords[2] * area / (v1 - v2).norm();
+
+                    if (ha > sqrt_2 || hb > sqrt_2 || hc > sqrt_2)
+                        continue;
+                    for (int c = 0; c < num_channels; ++c) {
+                      iadjust_values->at(x, y, c) = math::interpolate(
+                          adjust_values[i][c], adjust_values[i + 1][c], adjust_values[i + 2][c],
+                          bcoords[0], bcoords[1], bcoords[2]);
+                    }
+//                    math::Vec3f color = compute_object_class_color(get_pixel_value_n(pixel));
+//                    std::copy(color.begin(), color.end(), &image->at(x, y, 0));
+                    validity_mask->at(x, y, 0) = 255;
+                    blending_mask->at(x, y, 0) = 64;
+                }
+
+
+            }
+        }
+    }
+
+    for (int i = 0; i < image->get_pixel_amount(); ++i) {
+        if (validity_mask->at(i, 0) != 0){
+            math::Vec10f raw_color;
+            raw_color.copy(&image->at(i, 0), num_channels);
+            raw_color += iadjust_values->at(i);
+//            for (int c = 0; c < num_channels; ++c) {
+//              image->at(i, c) += iadjust_values->at(i, c);
+//            }
+            math::Vec3f color = compute_object_class_color(raw_color);
+            std::copy(color.begin(), color.end(), &image->at(i, 0));
+//            for (int c = 0; c < num_channels; ++c) {
+//                image->at(i, c) += object_class_color_image->at(i, c);
+//            }
+        } else {
+//            for (int c = 0; c < num_channels; ++c) {
+//              image->at(i, c) = 0.0f;
+//            }
             math::Vec3f color(0.0f, 0.0f, 0.0f);
             //DEBUG math::Vec3f color(1.0f, 0.0f, 1.0f);
             std::copy(color.begin(), color.end(), &image->at(i, 0));
         }
     }
+
 }
 
 bool TexturePatch::valid_pixel(math::Vec2f pixel) const {
@@ -319,6 +418,15 @@ TexturePatch::get_pixel_value(math::Vec2f pixel) const {
     return color;
 }
 
+math::Vec10f
+TexturePatch::get_pixel_value_n(math::Vec2f pixel) const {
+//    assert(valid_pixel(pixel));
+
+    math::Vec10f color;
+    image->linear_at(pixel[0], pixel[1], *color);
+    return color;
+}
+
 double
 TexturePatch::compute_geometric_area(const std::vector<math::Vec3f>& vertices,
                                             const std::vector<uint>& mesh_faces) const {
@@ -348,6 +456,82 @@ TexturePatch::set_pixel_value(math::Vec2i pixel, math::Vec3f color) {
 
     std::copy(color.begin(), color.end(), &image->at(pixel[0], pixel[1], 0));
     blending_mask->at(pixel[0], pixel[1], 0) = 128;
+}
+
+void
+TexturePatch::set_pixel_value(math::Vec2i pixel, math::Vec10f color) {
+    assert(blending_mask != NULL);
+    assert(valid_pixel(pixel));
+
+    std::copy(color.begin(), color.begin() + 3, &image->at(pixel[0], pixel[1], 0));
+    blending_mask->at(pixel[0], pixel[1], 0) = 128;
+}
+
+void
+TexturePatch::set_object_class(math::Vec10f color) {
+  this->object_class = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
+}
+
+// TODO pass in an object to color mapping structure
+math::Vec3f
+TexturePatch::compute_object_class_color(math::Vec10f color){
+  long arg_max = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
+  math::Vec3f final_class_color(0, 0, 0);
+  // TODO !!! map colors from passed argument to method
+  // TODO scale by value?
+//    REDUCE_MAP = {0: (0, 0, 0), 1: (255, 0, 0), 2: (0, 255, 0), 3: (205, 133, 63), 4: (255, 255, 0), 5: (255, 255, 255), 6: (0, 0, 255)}
+  switch (arg_max)
+  {
+    case 0: {
+      math::Vec3f class_color(0.f, 0.f, 0.f);
+      final_class_color = class_color;
+      break;
+    }
+    case 1: {
+      math::Vec3f class_color(1.f, 0.f, 0.f);
+      final_class_color = class_color;
+      break;
+    }
+    case 2: {
+      math::Vec3f class_color(0.f, 1.f, 0.f);
+      final_class_color = class_color;
+      break;
+    }
+    case 3: { // TODO divide these out???
+      math::Vec3f class_color(205.f / 255.f, 133.f / 255.f, 63.f / 255.f);
+      final_class_color = class_color;
+      break;
+    }
+    case 4: {
+      math::Vec3f class_color(1.f, 1.f, 0.f);
+      final_class_color = class_color;
+      break;
+    }
+    case 5: {
+      math::Vec3f class_color(1.f, 1.f, 1.f);
+      final_class_color = class_color;
+      break;
+    }
+    case 6: {
+      math::Vec3f class_color(0.f, 0.f, 1.f);
+      final_class_color = class_color;
+      break;
+    }
+    default: {
+      math::Vec3f class_color(0.f, 0.f, 0.f);
+      final_class_color = class_color;
+      std::cout << "ERROR!! Bad class from " << color << " is " << arg_max << std::endl;
+    }
+  }
+  return final_class_color * color[arg_max];
+}
+
+void
+TexturePatch::set_pixel_object_class_value(math::Vec2i pixel, math::Vec10f color) {
+    assert(valid_pixel(pixel));
+    math::Vec3f final_class_color = TexturePatch::compute_object_class_color(color);
+//    std::cout << "Class from " << color << " is " << arg_max << " and class color is " << final_class_color << std::endl;
+    set_pixel_value(pixel, final_class_color);
 }
 
 void
