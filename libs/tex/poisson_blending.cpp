@@ -29,6 +29,17 @@ math::Vec3f simple_laplacian(int i, mve::FloatImage::ConstPtr img){
         + math::Vec3f(&img->at(i + width, 0));
 }
 
+math::Vec10f simple_laplacian_n(int i, mve::FloatImage::ConstPtr img){
+    const int width = img->width();
+    assert(i > width + 1 && i < img->get_pixel_amount() - width -1);
+
+    return -4.0f * math::Vec10f(&img->at(i, 0))
+        + math::Vec10f(&img->at(i - width, 0))
+        + math::Vec10f(&img->at(i - 1, 0))
+        + math::Vec10f(&img->at(i + 1, 0))
+        + math::Vec10f(&img->at(i + width, 0));
+}
+
 bool valid_mask(mve::ByteImage::ConstPtr mask){
     const int width = mask->width();
     const int height = mask->height();
@@ -52,14 +63,14 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
 
     assert(src->width() == mask->width() && mask->width() == dest->width());
     assert(src->height() == mask->height() && mask->height() == dest->height());
-    assert(src->channels() == 3 && dest->channels() == 3);
+//    assert(src->channels() == 3 && dest->channels() == 3);
     assert(mask->channels() == 1);
     assert(valid_mask(mask));
 
     const int n = dest->get_pixel_amount();
     const int width = dest->width();
     const int height = dest->height();
-    const int channels = dest->channels();
+    const int channels = std::min(dest->channels(), 3);
 
     mve::Image<int>::Ptr indices = mve::Image<int>::create(width, height, 1);
     indices->fill(-1);
@@ -72,7 +83,7 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
     }
     const int nnz = index;
 
-    std::vector<math::Vec3f> coefficients_b;
+    std::vector<math::Vec10f> coefficients_b;
     coefficients_b.resize(nnz);
     // std::cout << "blend 0 " << std::endl;
     std::vector<Eigen::Triplet<float, int>, Eigen::aligned_allocator<Eigen::Triplet<float, int>> > coefficients_A;
@@ -84,7 +95,7 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
             Eigen::Triplet<float, int> t(row, row, 1.0f);
             coefficients_A.push_back(t);
 
-            coefficients_b[row] = math::Vec3f(&dest->at(i, 0));
+            coefficients_b[row] = math::Vec10f(&dest->at(i, 0));
         }
 
         if (mask->at(i) == 255) {
@@ -109,8 +120,10 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
 
             coefficients_A.insert(coefficients_A.end(), triplets, triplets + 5);
 
-            math::Vec3f l_d = simple_laplacian(i, dest);
-            math::Vec3f l_s = simple_laplacian(i, src);
+//            math::Vec3f l_d = simple_laplacian(i, dest);
+//            math::Vec3f l_s = simple_laplacian(i, src);
+            math::Vec10f l_d = simple_laplacian_n(i, dest);
+            math::Vec10f l_s = simple_laplacian_n(i, src);
 
             coefficients_b[row] = (alpha * l_s + (1.0f - alpha) * l_d);
         }
