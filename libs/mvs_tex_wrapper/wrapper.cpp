@@ -32,6 +32,7 @@ void textureMesh(const TextureSettings& texture_settings,
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
+    int texture_channels = 0;
 
     std::cout << "Texturing ...\n Eigen version:" << std::endl;
     std::cout << EIGEN_WORLD_VERSION << "." << EIGEN_MAJOR_VERSION << "." << EIGEN_MINOR_VERSION<< std::endl;
@@ -74,6 +75,9 @@ void textureMesh(const TextureSettings& texture_settings,
     std::cout << "Generating texture views: " << std::endl;
     tex::TextureViews texture_views;
     tex::generate_texture_views(in_scene, &texture_views, tmp_dir);
+    if (!texture_views.empty()) {
+        texture_channels = texture_views[0].get_channels();
+    }
 
     timer.measure("Loading");
 
@@ -128,7 +132,7 @@ void textureMesh(const TextureSettings& texture_settings,
             std::cout << "\tLoading data cost file... " << std::flush;
             try {
                 tex::DataCosts::load_from_file(data_cost_file, &data_costs);
-            } catch (util::FileException e) {
+            } catch (util::FileException &e) {
                 std::cout << "failed!" << std::endl;
                 std::cerr << e.what() << std::endl;
                 std::exit(EXIT_FAILURE);
@@ -178,8 +182,9 @@ void textureMesh(const TextureSettings& texture_settings,
         std::cout << "done." << std::endl;
     }
 
-    // generate full texture patchs
+    // generate full texture patches
     tex::TexturePatches texture_patches;
+    tex::TexturePatches texture_object_class_patches;
     {
         /* Create texture patches and adjust them. */
 
@@ -205,9 +210,31 @@ void textureMesh(const TextureSettings& texture_settings,
             timer.measure("Calculating texture patch validity masks");
         }
 
-        if (settings.local_seam_leveling) {
-            std::cout << "Running local seam leveling:" << std::endl;
-            tex::local_seam_leveling(graph, mesh, vertex_projection_infos, &texture_patches);
+        if (texture_channels > 3) {
+            std::cout << "Making object class textures:" << std::endl;
+            // Build a copy of texture_patches for object classes
+            for (const auto &texture_patch : texture_patches) {
+                texture_object_class_patches.push_back(texture_patch->duplicate());
+            }
+
+            std::cout << "Building object class texture image:" << std::endl;
+            #pragma omp parallel for schedule(dynamic)
+            for (std::size_t i = 0; i < texture_object_class_patches.size(); ++i) {
+                TexturePatch::Ptr texture_object_class_patch = texture_object_class_patches[i];
+                std::vector<math::Vec3f> patch_adjust_values(texture_object_class_patch->get_faces().size() * 3, math::Vec3f(0.0f));
+                texture_object_class_patch->texture_object_colors(patch_adjust_values);
+            }
+
+            // For n-channel, get texture_patches for object classes here too--map classes to rgb
+            if (settings.local_seam_leveling) {
+                std::cout << "Running local seam leveling:" << std::endl;
+                tex::local_seam_leveling(graph, mesh, vertex_projection_infos, &texture_patches, &texture_object_class_patches);
+            }
+        } else {
+            if (settings.local_seam_leveling) {
+                std::cout << "Running local seam leveling:" << std::endl;
+                tex::local_seam_leveling(graph, mesh, vertex_projection_infos, &texture_patches);
+            }
         }
         timer.measure("Running local seam leveling");
     }
@@ -217,6 +244,7 @@ void textureMesh(const TextureSettings& texture_settings,
     for (int vi = 0; vi < sub_vert_masks.size(); ++vi) {
         std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi+1 << " of " << sub_vert_masks.size() << std::endl;
         tex::TextureAtlases sub_texture_atlases;
+        tex::TextureAtlases sub_texture_object_class_atlases;
         const std::vector<bool>& vertex_mask(sub_vert_masks[vi]);
         std::vector<bool> inverted_mask(vertex_mask.size());
         for (std::size_t i = 0; i < vertex_mask.size(); ++i)
@@ -240,17 +268,23 @@ void textureMesh(const TextureSettings& texture_settings,
 
         // redo_patches
         tex::TexturePatches sub_texture_patches;
+        tex::TexturePatches sub_texture_object_class_patches;
         size_t patch_ct = 0;
         for(std::size_t i = 0; i < texture_patches.size(); ++i) {
             TexturePatch::Ptr new_patch = TexturePatch::create(texture_patches[i], face_indices);
+            TexturePatch::Ptr new_object_class_patch = TexturePatch::create(texture_object_class_patches[i], face_indices);
             if (!new_patch->get_faces().empty()) {
                 new_patch->set_label(patch_ct);
                 sub_texture_patches.push_back(new_patch);
+                if (texture_channels > 3) {
+                    new_object_class_patch->set_label(patch_ct);
+                    sub_texture_object_class_patches.push_back(new_object_class_patch);
+                }
                 patch_ct++;
             }
         }
 
-        if (texture_patches.size() == 0) {
+        if (texture_patches.empty()) {
             std::cout << "No Texture Patches - skipping Sub-Model " << sub_name << std::endl;
             continue;
         }
@@ -284,6 +318,29 @@ void textureMesh(const TextureSettings& texture_settings,
             tex::Model::save(sub_model, out_prefix+sub_name);
             std::cout << "done." << std::endl;
             timer.measure("Saving");
+        }
+
+        if (texture_channels > 3) {
+            {
+                /* Generate texture atlases for object classes. */
+                std::cout << "Generating object class texture atlases:" << std::endl;
+                tex::generate_texture_atlases(&sub_texture_object_class_patches,
+                                              settings,
+                                              &sub_texture_object_class_atlases,
+                                              mesh->get_vertices(),
+                                              mesh->get_faces());
+            }
+
+            /* Create and write out obj model for object classes. */
+            {
+                std::cout << "Building object class objmodel:" << std::endl;
+                tex::Model sub_model;
+                tex::build_model(sub_mesh, sub_texture_object_class_atlases, &sub_model);
+
+                std::cout << "\tSaving object class model to " << out_prefix+sub_name << "_classes... " << std::flush;
+                tex::Model::save(sub_model, out_prefix+sub_name+"_classes");
+                std::cout << "done." << std::endl;
+            }
         }
 
         timer.measure("Total");
