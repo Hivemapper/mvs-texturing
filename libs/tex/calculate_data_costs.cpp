@@ -218,8 +218,9 @@ calculate_face_projection_infos(mve::TriangleMesh::ConstPtr mesh,
                         }
 
                     } catch (...) {
-                        std::cout << "Warning, point " << face_center[0] << ", " << face_center[1] << ", " << face_center[2]
-                            << " outside mask domain"<< std::endl;
+                        // It is no longer abnormal for points to be outside the territory of the evmask
+                        // This is due to poisson meshing. It could be worth tweaking the design of evmask
+                        // to normalize this, but the current system works fine.
                         continue;
                     }
                 }
