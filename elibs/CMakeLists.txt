@@ -32,8 +32,8 @@ externalproject_add(ext_rayint
 
 externalproject_add(ext_mve
     PREFIX          mve
-    GIT_REPOSITORY  https://github.com/simonfuhrmann/mve.git
-    GIT_TAG         189e042416b7018b9d454b359a1d5aab68f670f0
+    GIT_REPOSITORY  https://github.com/Hivemapper/mve.git
+    GIT_TAG         157b910c0213ea30b5bd2e368efaf997fd3865cf
     UPDATE_COMMAND  ""
     SOURCE_DIR      ${CMAKE_SOURCE_DIR}/elibs/mve
     CONFIGURE_COMMAND ""

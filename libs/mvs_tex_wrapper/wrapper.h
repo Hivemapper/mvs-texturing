@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 #include <string>
 
 #include <mvs_tex_mask/euclidean_view_mask.h>
@@ -32,5 +33,6 @@ void textureMesh(const TextureSettings& texture_settings,
                  const std::vector<std::vector<bool>>& sub_vert_masks,
                  const std::vector<std::string>& sub_names,
                  std::shared_ptr<EuclideanViewMask> ev_mask = NULL,
-                 uint atlas_size = 0);
+                 uint atlas_size = 0,
+                 float* hidden_face_proportion = NULL);
 }  // namespace MvsTexturing
