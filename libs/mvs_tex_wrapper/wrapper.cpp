@@ -228,16 +228,20 @@ void textureMesh(const TextureSettings& texture_settings,
 
             // For n-channel, get texture_patches for object classes here too--map classes to rgb
             if (settings.local_seam_leveling) {
-                std::cout << "Running local seam leveling:" << std::endl;
-                tex::local_seam_leveling(graph, mesh, vertex_projection_infos, &texture_patches, &texture_object_class_patches);
+                // This function call does seam leveling on everything including class data
+//                tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches, &texture_object_class_patches);
+                std::cout << "Running local seam leveling ignoring object classes:" << std::endl;
+                // This function call ignores extra class data while doing seam leveling and just does rgb channels
+                tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches);
             }
+            timer.measure("Running local seam leveling with object classes");
         } else {
             if (settings.local_seam_leveling) {
                 std::cout << "Running local seam leveling:" << std::endl;
                 tex::local_seam_leveling(graph, mesh, vertex_projection_infos, &texture_patches);
             }
+            timer.measure("Running local seam leveling");
         }
-        timer.measure("Running local seam leveling");
     }
 
     // Now loop, generating+saving subindexed meshes and atlas
@@ -316,8 +320,8 @@ void textureMesh(const TextureSettings& texture_settings,
             timer.measure("Building OBJ model");
 
             std::cout << "\tSaving model to " << out_prefix+sub_name << "... " << std::flush;
-            tex::Model::save(sub_model, out_prefix+sub_name);
             std::cout << "done." << std::endl;
+            tex::Model::save(sub_model, out_prefix+sub_name);
             timer.measure("Saving");
         }
 
@@ -337,10 +341,12 @@ void textureMesh(const TextureSettings& texture_settings,
                 std::cout << "Building object class objmodel:" << std::endl;
                 tex::Model sub_model;
                 tex::build_model(sub_mesh, sub_texture_object_class_atlases, &sub_model);
+                timer.measure("Building OBJ class model");
 
                 std::cout << "\tSaving object class model to " << out_prefix+sub_name << "_classes... " << std::flush;
-                tex::Model::save(sub_model, out_prefix+sub_name+"_classes");
                 std::cout << "done." << std::endl;
+                tex::Model::save(sub_model, out_prefix+sub_name+"_classes");
+                timer.measure("Saving object model");
             }
         }
 
