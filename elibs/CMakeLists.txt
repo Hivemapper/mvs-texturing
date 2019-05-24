@@ -12,7 +12,7 @@ externalproject_add(ext_mapmap
 externalproject_add(ext_rayint
     PREFIX          ext_rayint
     GIT_REPOSITORY  https://github.com/nmoehrle/rayint.git
-    GIT_TAG         cuda
+    GIT_TAG         d5a8126aebb98c68b2b98bea05fcc8cebb6a2fb9
     UPDATE_COMMAND  ""
     SOURCE_DIR      ${CMAKE_SOURCE_DIR}/elibs/rayint
     CONFIGURE_COMMAND ""
