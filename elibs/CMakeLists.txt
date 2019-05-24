@@ -1,7 +1,7 @@
 externalproject_add(ext_mapmap
     PREFIX          ext_mapmap
     GIT_REPOSITORY  https://github.com/dthuerck/mapmap_cpu.git
-    GIT_TAG         master
+    GIT_TAG         55cd9374f6467263f2741474a5e78e68417d7465
     UPDATE_COMMAND  ""
     SOURCE_DIR      ${CMAKE_SOURCE_DIR}/elibs/mapmap
     CONFIGURE_COMMAND ""
