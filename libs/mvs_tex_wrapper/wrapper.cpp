@@ -29,7 +29,8 @@ void textureMesh(const TextureSettings& texture_settings,
                  const std::vector<std::string>& sub_names,
                  std::shared_ptr<EuclideanViewMask> ev_mask,
                  uint atlas_size,
-                 float* hidden_face_proportion) {
+                 float* hidden_face_proportion,
+                 std::vector<std::vector<int>>* segmentation_classes) {
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
@@ -229,12 +230,32 @@ void textureMesh(const TextureSettings& texture_settings,
             // For n-channel, get texture_patches for object classes here too--map classes to rgb
             if (settings.local_seam_leveling) {
                 // This function call does seam leveling on everything including class data
-//                tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches, &texture_object_class_patches);
-                std::cout << "Running local seam leveling ignoring object classes:" << std::endl;
-                // This function call ignores extra class data while doing seam leveling and just does rgb channels
-                tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches);
+                std::cout << "Running local seam leveling with classes:" << std::endl;
+                tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches, &texture_object_class_patches);
+//                // This function call ignores extra class data while doing seam leveling and just does rgb channels
+//                std::cout << "Running local seam leveling ignoring object classes:" << std::endl;
+//                tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches);
             }
             timer.measure("Running local seam leveling with object classes");
+
+            if ( segmentation_classes != nullptr) {
+              // set the segmentation class for each vertex
+              std::vector<int> seg_class(vertex_projection_infos.size());
+              for (std::size_t i = 0; i < vertex_projection_infos.size(); ++i) {
+                std::vector<tex::VertexProjectionInfo> const &projection_infos = vertex_projection_infos[i];
+                for (tex::VertexProjectionInfo const &projection_info : projection_infos) {
+                  TexturePatch::Ptr texture_patch = texture_patches.at(projection_info.texture_patch_id);
+                  if (texture_patch->get_label() == 0) continue;
+                  math::Vec10f
+                      color = texture_patch->get_pixel_value_n(projection_info.projection); //+ math::Vec2f(0.5f, 0.5f))
+                  int val = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
+                  seg_class[i] = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
+                }
+              }
+              segmentation_classes->clear();
+              segmentation_classes->emplace_back(seg_class);
+            }
+
         } else {
             if (settings.local_seam_leveling) {
                 std::cout << "Running local seam leveling:" << std::endl;
@@ -348,6 +369,7 @@ void textureMesh(const TextureSettings& texture_settings,
                 tex::Model::save(sub_model, out_prefix+sub_name+"_classes");
                 timer.measure("Saving object model");
             }
+
         }
 
         timer.measure("Total");
