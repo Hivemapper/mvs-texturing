@@ -34,7 +34,10 @@ void textureMesh(const TextureSettings& texture_settings,
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
+    // the number of channels in the image
     int texture_channels = 0;
+    // the number of image channels that describe color -- additional channels indicate segmentation classes
+    int num_colors = 3;
 
     std::cout << "Texturing ...\n Eigen version:" << std::endl;
     std::cout << EIGEN_WORLD_VERSION << "." << EIGEN_MAJOR_VERSION << "." << EIGEN_MINOR_VERSION<< std::endl;
@@ -212,7 +215,7 @@ void textureMesh(const TextureSettings& texture_settings,
             timer.measure("Calculating texture patch validity masks");
         }
 
-        if (texture_channels > 3) {
+        if (texture_channels > num_colors) {
             std::cout << "Making object class textures:" << std::endl;
             // Build a copy of texture_patches for object classes
             for (const auto &texture_patch : texture_patches) {
@@ -248,12 +251,14 @@ void textureMesh(const TextureSettings& texture_settings,
                   if (texture_patch->get_label() == 0) continue;
                   math::Vec10f
                       color = texture_patch->get_pixel_value_n(projection_info.projection); //+ math::Vec2f(0.5f, 0.5f))
-                  int val = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
-                  seg_class[i] = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
+                  int val = std::distance(color.begin() + num_colors, std::max_element(color.begin() + num_colors, color.end()));
+                  seg_class[i] = std::distance(color.begin() + num_colors, std::max_element(color.begin() + num_colors, color.end()));
                 }
               }
               segmentation_classes->clear();
               segmentation_classes->emplace_back(seg_class);
+              timer.measure("Creating object class assignments");
+              // TODO dwh: if all we are doing is creating segmentation classes, we can cleanup and return here
             }
 
         } else {
@@ -298,11 +303,14 @@ void textureMesh(const TextureSettings& texture_settings,
         size_t patch_ct = 0;
         for(std::size_t i = 0; i < texture_patches.size(); ++i) {
             TexturePatch::Ptr new_patch = TexturePatch::create(texture_patches[i], face_indices);
-            TexturePatch::Ptr new_object_class_patch = TexturePatch::create(texture_object_class_patches[i], face_indices);
+            TexturePatch::Ptr new_object_class_patch = nullptr;
+            if (texture_channels > num_colors) {
+              TexturePatch::Ptr new_object_class_patch = TexturePatch::create(texture_object_class_patches[i], face_indices);
+            }
             if (!new_patch->get_faces().empty()) {
                 new_patch->set_label(patch_ct);
                 sub_texture_patches.push_back(new_patch);
-                if (texture_channels > 3) {
+                if (texture_channels > num_colors) {
                     new_object_class_patch->set_label(patch_ct);
                     sub_texture_object_class_patches.push_back(new_object_class_patch);
                 }
@@ -346,7 +354,7 @@ void textureMesh(const TextureSettings& texture_settings,
             timer.measure("Saving");
         }
 
-        if (texture_channels > 3) {
+        if (texture_channels > num_colors) {
             {
                 /* Generate texture atlases for object classes. */
                 std::cout << "Generating object class texture atlases:" << std::endl;
