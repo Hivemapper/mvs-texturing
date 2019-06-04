@@ -222,6 +222,7 @@ void textureMesh(const TextureSettings& texture_settings,
                 texture_object_class_patches.push_back(texture_patch->duplicate());
             }
 
+            // This method creates a synthetic color image where each rgb color represents a different class
             std::cout << "Building object class texture image:" << std::endl;
             // TODO dwh: if all we are doing is creating segmentation classes, we probably don't need to do this
             #pragma omp parallel for schedule(dynamic)
@@ -231,12 +232,13 @@ void textureMesh(const TextureSettings& texture_settings,
                 texture_object_class_patch->texture_object_colors(patch_adjust_values);
             }
 
-            // For n-channel, get texture_patches for object classes here too--map classes to rgb
+            // For n-channel, do the following on all channels including classes
             if (settings.local_seam_leveling) {
-                // This function call does seam leveling on everything including class data
+                // This function call does seam leveling on everything including rgb class data
                 std::cout << "Running local seam leveling with classes:" << std::endl;
                 tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches, &texture_object_class_patches);
-//                // This function call ignores extra class data while doing seam leveling and just does rgb channels
+                // TODO dwh: if we are not outputting an obj file the following is a better option:
+//                // This function call ignores rgb object segmentation class data while doing seam leveling and just does rgb channels
 //                std::cout << "Running local seam leveling ignoring object classes:" << std::endl;
 //                tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches);
             }
@@ -282,7 +284,7 @@ void textureMesh(const TextureSettings& texture_settings,
         const std::vector<bool>& vertex_mask(sub_vert_masks[vi]);
         std::vector<bool> inverted_mask(vertex_mask.size());
         for (std::size_t i = 0; i < vertex_mask.size(); ++i)
-          inverted_mask[i] = !vertex_mask[i];
+            inverted_mask[i] = !vertex_mask[i];
 
         const std::string& sub_name(sub_names[vi]);
         std::vector<std::size_t> face_indices;
@@ -358,6 +360,7 @@ void textureMesh(const TextureSettings& texture_settings,
         }
 
         if (texture_channels > num_colors) {
+            // TODO dwh: note that this requires a color mapping for each class which will change with different models but is currently hard-coded --either make this section optional with an ability to pass in a color mapping (nice for testing) or remove this
             {
                 /* Generate texture atlases for object classes. */
                 std::cout << "Generating object class texture atlases:" << std::endl;
