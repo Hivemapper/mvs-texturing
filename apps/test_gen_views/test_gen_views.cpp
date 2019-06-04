@@ -1,5 +1,5 @@
 //
-// Created by vagrant on 4/19/19.
+// Test Harness Created by David Hattery on 4/19/19.
 //
 
 #include "tex/texturing.h"
@@ -93,7 +93,7 @@ int main(){
   sub_vert_masks.emplace_back(155285, true);
 
 //  ComputeCloud::Cloud tmp_mesh {mesh_file_i};
-  std::vector<std::vector<int>> segmentation_classes {}; // TODO vector vector or just vector since we should only have one layer when segmenting
+  std::vector<std::vector<uint8_t>> segmentation_classes {}; // TODO vector vector or just vector since we should only have one layer when segmenting
   segmentation_classes.clear();
 //  segmentation_classes.emplace_back(tmp_mesh.getSize(), 0); // set all to unknown class
   segmentation_classes.emplace_back(155285, 0);
@@ -235,17 +235,23 @@ int main(){
 //    std::size_t const num_vertices = vertex_projection_infos.size();
 //    std::vector<math::Vec10f> vertex_colors(num_vertices);
 //    std::vector<std::vector<Pixel_n> > pixels(texture_patches.size());
-      std::vector<int> seg_class(vertex_projection_infos.size());
+//      std::vector<int> seg_class(vertex_projection_infos.size());
 
       /* Sample vertex colors. */
+      int num_colors = 3;
+      std::cout << "Setting segmentation class probabilities:" << std::endl;
+      segmentation_classes.clear();
       for (std::size_t i = 0; i < vertex_projection_infos.size(); ++i) {
         std::vector<tex::VertexProjectionInfo> const & projection_infos = vertex_projection_infos[i];
         for (tex::VertexProjectionInfo const &projection_info : projection_infos) {
           TexturePatch::Ptr texture_patch = texture_patches.at(projection_info.texture_patch_id);
           if (texture_patch->get_label() == 0) continue;
           math::Vec10f color = texture_patch->get_pixel_value_n(projection_info.projection); //+ math::Vec2f(0.5f, 0.5f))
-          int val = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
-          seg_class[i] = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
+          color *= 255;
+          std::vector<uint8_t> class_probability(color.begin() + num_colors, color.end());
+          segmentation_classes.push_back(class_probability);
+//          int val = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
+//          seg_class[i] = std::distance(color.begin() + 3, std::max_element(color.begin() + 3, color.end()));
 //        segmentation_classes.push_back(seg_class);
 //        vertex_colors[i] = color;
         }
@@ -257,8 +263,8 @@ int main(){
 //        pixels[projection_info.texture_patch_id].push_back(pixel);
 //      }
       }
-      segmentation_classes.clear();
-      segmentation_classes.emplace_back(seg_class);
+//      segmentation_classes.clear();
+//      segmentation_classes.emplace_back(seg_class);
       std::cout << "now what " << std::endl;
 
     } else {
