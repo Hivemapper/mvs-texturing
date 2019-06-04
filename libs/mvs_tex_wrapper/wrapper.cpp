@@ -30,7 +30,7 @@ void textureMesh(const TextureSettings& texture_settings,
                  std::shared_ptr<EuclideanViewMask> ev_mask,
                  uint atlas_size,
                  float* hidden_face_proportion,
-                 std::vector<std::vector<int>>* segmentation_classes) {
+                 std::vector<std::vector<uint8_t>>* segmentation_classes) {
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
@@ -223,6 +223,7 @@ void textureMesh(const TextureSettings& texture_settings,
             }
 
             std::cout << "Building object class texture image:" << std::endl;
+            // TODO dwh: if all we are doing is creating segmentation classes, we probably don't need to do this
             #pragma omp parallel for schedule(dynamic)
             for (std::size_t i = 0; i < texture_object_class_patches.size(); ++i) {
                 TexturePatch::Ptr texture_object_class_patch = texture_object_class_patches[i];
@@ -242,23 +243,25 @@ void textureMesh(const TextureSettings& texture_settings,
             timer.measure("Running local seam leveling with object classes");
 
             if ( segmentation_classes != nullptr) {
-              // set the segmentation class for each vertex
-              std::vector<int> seg_class(vertex_projection_infos.size());
-              for (std::size_t i = 0; i < vertex_projection_infos.size(); ++i) {
-                std::vector<tex::VertexProjectionInfo> const &projection_infos = vertex_projection_infos[i];
-                for (tex::VertexProjectionInfo const &projection_info : projection_infos) {
-                  TexturePatch::Ptr texture_patch = texture_patches.at(projection_info.texture_patch_id);
-                  if (texture_patch->get_label() == 0) continue;
-                  math::Vec10f
-                      color = texture_patch->get_pixel_value_n(projection_info.projection); //+ math::Vec2f(0.5f, 0.5f))
-                  int val = std::distance(color.begin() + num_colors, std::max_element(color.begin() + num_colors, color.end()));
-                  seg_class[i] = std::distance(color.begin() + num_colors, std::max_element(color.begin() + num_colors, color.end()));
+                std::cout << "Setting segmentation class probabilities for " << vertex_projection_infos.size() << " vertices:" << std::endl;
+                segmentation_classes->clear();
+                // set the segmentation class for each vertex
+                for (std::size_t i = 0; i < vertex_projection_infos.size(); ++i) {
+                  std::vector<tex::VertexProjectionInfo> const &projection_infos = vertex_projection_infos[i];
+                  math::Vec10f color(0.f);
+                  int number_projections = 0;
+                  for (tex::VertexProjectionInfo const &projection_info : projection_infos) {
+                      TexturePatch::Ptr texture_patch = texture_patches.at(projection_info.texture_patch_id);
+                      if (texture_patch->get_label() == 0) continue;
+                      number_projections += 1;
+                      color += texture_patch->get_pixel_value_n(projection_info.projection);
+                  }
+                  color *= (number_projections > 0)? 255.f / float(number_projections) : 255.f;
+                  std::vector<uint8_t> class_probability(color.begin() + num_colors, color.end());
+                  segmentation_classes->push_back(class_probability);
                 }
-              }
-              segmentation_classes->clear();
-              segmentation_classes->emplace_back(seg_class);
-              timer.measure("Creating object class assignments");
-              // TODO dwh: if all we are doing is creating segmentation classes, we can cleanup and return here
+                timer.measure("Creating object class assignments");
+                // TODO dwh: if all we are doing is creating segmentation classes, we can cleanup and return here
             }
 
         } else {
@@ -279,7 +282,7 @@ void textureMesh(const TextureSettings& texture_settings,
         const std::vector<bool>& vertex_mask(sub_vert_masks[vi]);
         std::vector<bool> inverted_mask(vertex_mask.size());
         for (std::size_t i = 0; i < vertex_mask.size(); ++i)
-            inverted_mask[i] = !vertex_mask[i];
+          inverted_mask[i] = !vertex_mask[i];
 
         const std::string& sub_name(sub_names[vi]);
         std::vector<std::size_t> face_indices;
@@ -289,7 +292,7 @@ void textureMesh(const TextureSettings& texture_settings,
         mve::TriangleMesh::Ptr sub_mesh = mesh->duplicate();
         sub_mesh->delete_vertices_fix_faces(inverted_mask);
 
-        if (sub_mesh->get_faces().size() == 0) {
+        if (sub_mesh->get_faces().empty()) {
             std::cout << "No Faces - skipping Sub-Model " << sub_name << std::endl;
             continue;
         }
@@ -305,7 +308,7 @@ void textureMesh(const TextureSettings& texture_settings,
             TexturePatch::Ptr new_patch = TexturePatch::create(texture_patches[i], face_indices);
             TexturePatch::Ptr new_object_class_patch = nullptr;
             if (texture_channels > num_colors) {
-              TexturePatch::Ptr new_object_class_patch = TexturePatch::create(texture_object_class_patches[i], face_indices);
+              new_object_class_patch = TexturePatch::create(texture_object_class_patches[i], face_indices);
             }
             if (!new_patch->get_faces().empty()) {
                 new_patch->set_label(patch_ct);
