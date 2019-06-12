@@ -523,7 +523,7 @@ TexturePatch::compute_object_class_color(math::Vec10f color){
       std::cout << "ERROR!! Bad class from " << color << " is " << arg_max << std::endl;
     }
   }
-  return final_class_color * color[arg_max];
+  return final_class_color; // * color[arg_max];
 }
 
 void
