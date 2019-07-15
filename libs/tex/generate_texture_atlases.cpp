@@ -126,7 +126,7 @@ generate_capped_texture_atlas(std::vector<TexturePatch::Ptr> * orig_texture_patc
     std::vector<double> original_pixel_sizes;
     double total_geometry_size = 0;
     double total_pixel_size = 0;
-    for (int i = 0; i < total_num_patches; ++i) {
+    for (auto i = 0; i < total_num_patches; ++i) {
         original_geometry_sizes.push_back(texture_patches[i]->compute_geometric_area(vertices, faces));
         original_pixel_sizes.push_back(texture_patches[i]->compute_pixel_area());
         total_geometry_size += original_geometry_sizes.back();
@@ -142,7 +142,7 @@ generate_capped_texture_atlas(std::vector<TexturePatch::Ptr> * orig_texture_patc
         TextureAtlas::Ptr texture_atlas = TextureAtlas::create(atlas_size);
 
         bool atlas_complete = true;
-        for (int i = 0; i < total_num_patches; ++i) {
+        for (auto i = 0; i < total_num_patches; ++i) {
             TexturePatch::Ptr patch = TexturePatch::create(texture_patches[i]);
             double patch_ratio = original_pixel_sizes[i]/original_geometry_sizes[i];
             // rescale the patch if it's larger than the current max ratio and of sufficient size to scale meaningfully
