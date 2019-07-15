@@ -69,7 +69,7 @@ int main(){
   const std::string out_prefix="/home/vagrant/redo_classes/5b56c067ad391464ac5779b0/5b56c067ad391464ac5779b0";
 
 
-  std::vector<std::vector<bool>> sub_vert_masks;
+  std::vector<std::vector<bool>> sub_vert_masks {};
 
 //  // determine splits if needed
 //  std::vector<std::vector<bool>> sub_vertex_masks {};
