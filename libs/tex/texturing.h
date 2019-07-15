@@ -35,8 +35,8 @@ typedef std::vector<TextureAtlas::Ptr> TextureAtlases;
 typedef ObjModel Model;
 typedef UniGraph Graph;
 typedef SparseTable<std::uint32_t, std::uint16_t, float> DataCosts;
-typedef std::vector<std::vector<VertexProjectionInfo> > VertexProjectionInfos;
-typedef std::vector<std::vector<FaceProjectionInfo> > FaceProjectionInfos;
+typedef std::vector<std::vector<VertexProjectionInfo>> VertexProjectionInfos;
+typedef std::vector<std::vector<FaceProjectionInfo>> FaceProjectionInfos;
 
 /**
   * prepares the mesh for texturing
@@ -44,21 +44,24 @@ typedef std::vector<std::vector<FaceProjectionInfo> > FaceProjectionInfos;
   *  -ensures normals (face and vertex)
   */
 void
-prepare_mesh(mve::MeshInfo * mesh_info, mve::TriangleMesh::Ptr mesh);
+prepare_mesh(mve::MeshInfo * mesh_info,
+    mve::TriangleMesh::Ptr mesh);
 
 /**
   * Generates TextureViews from the in_scene.
   */
 void
 generate_texture_views(std::string const & in_scene,
-    TextureViews * texture_views, std::string const & tmp_dir);
+    TextureViews * texture_views,
+    std::string const & tmp_dir);
 
 /**
   * Builds up the meshes face adjacency graph using the vertex_infos
   */
 void
 build_adjacency_graph(mve::TriangleMesh::ConstPtr mesh,
-    mve::MeshInfo const & mesh_info, UniGraph * graph);
+    mve::MeshInfo const & mesh_info,
+    UniGraph * graph);
 
 /**
  * Calculates the data costs for each face and texture view combination,
@@ -66,8 +69,11 @@ build_adjacency_graph(mve::TriangleMesh::ConstPtr mesh,
  */
 void
 calculate_data_costs(mve::TriangleMesh::ConstPtr mesh,
-    TextureViews * texture_views, Settings const & settings,
-    DataCosts * data_costs, std::shared_ptr<MvsTexturing::EuclideanViewMask> ev_mask, float* hidden_face_proportion = NULL);
+    TextureViews * texture_views,
+    Settings const & settings,
+    DataCosts * data_costs,
+    std::shared_ptr<MvsTexturing::EuclideanViewMask> ev_mask,
+    float* hidden_face_proportion = NULL);
 
 void
 postprocess_face_infos(Settings const & settings,
@@ -96,33 +102,40 @@ void generate_texture_patches(UniGraph const & graph,
   * [<A HREF="https://www.google.de/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&sqi=2&ved=0CC8QFjAA&url=http%3A%2F%2Fwww.robots.ox.ac.uk%2F~vilem%2FSeamlessMosaicing.pdf&ei=_ZbvUvSZIaPa4ASi7IGAAg&usg=AFQjCNGd4x5HnMMR68Sn2V5dPgmqJWErCA&sig2=4j47bXgovw-uks9LBGl_sA">Seamless mosaicing of image-based texture maps</A>]
   */
 void
-global_seam_leveling(UniGraph const & graph, mve::TriangleMesh::ConstPtr mesh,
+global_seam_leveling(UniGraph const & graph,
+    mve::TriangleMesh::ConstPtr mesh,
     mve::MeshInfo const & mesh_info,
     VertexProjectionInfos const & vertex_projection_infos,
     TexturePatches * texture_patches);
 
 void
-local_seam_leveling(UniGraph const & graph, mve::TriangleMesh::ConstPtr mesh,
+local_seam_leveling(UniGraph const & graph,
+    mve::TriangleMesh::ConstPtr mesh,
     VertexProjectionInfos const & vertex_projection_infos,
-    TexturePatches * texture_patches, TexturePatches * texture_object_class_patches = nullptr);
+    TexturePatches * texture_patches);
 
 void
-local_seam_leveling_n(UniGraph const & graph, mve::TriangleMesh::ConstPtr mesh,
-                    VertexProjectionInfos const & vertex_projection_infos,
-                    TexturePatches * texture_patches, TexturePatches * texture_object_class_patches = nullptr);
+local_seam_leveling_n(UniGraph const & graph,
+    mve::TriangleMesh::ConstPtr mesh,
+    VertexProjectionInfos const & vertex_projection_infos,
+    TexturePatches * texture_patches,
+    int num_texture_channels,
+    TexturePatches * texture_object_class_patches = nullptr);
 
 void
 generate_texture_atlases(TexturePatches * texture_patches,
-    Settings const & settings, TextureAtlases * texture_atlases, const std::vector<math::Vec3f>& vertices,
-                         const std::vector<uint>& mesh_faces);
+    Settings const & settings,
+    TextureAtlases * texture_atlases,
+    const std::vector<math::Vec3f>& vertices,
+    const std::vector<uint>& mesh_faces);
 
 void
 generate_capped_texture_atlas(std::vector<TexturePatch::Ptr> * orig_texture_patches,
-                         Settings const & settings,
-                         std::vector<TextureAtlas::Ptr> * texture_atlases,
-                         uint atlas_size,
-                         const std::vector<math::Vec3f>& vertices,
-                         const std::vector<uint>& faces);
+    Settings const & settings,
+    std::vector<TextureAtlas::Ptr> * texture_atlases,
+    uint atlas_size,
+    const std::vector<math::Vec3f>& vertices,
+    const std::vector<uint>& faces);
 
 /**
   * Builds up an model for the mesh by constructing materials and
