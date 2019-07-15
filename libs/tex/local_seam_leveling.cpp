@@ -348,7 +348,7 @@ local_seam_leveling_n(UniGraph const & graph,
 
     std::vector<std::vector<EdgeProjectionInfo>> edge_projection_infos {};
     {
-        std::vector<MeshEdge> seam_edges;
+        std::vector<MeshEdge> seam_edges {};
         find_seam_edges(graph, mesh, &seam_edges);
         edge_colors.resize(seam_edges.size());
         edge_projection_infos.resize(seam_edges.size());
