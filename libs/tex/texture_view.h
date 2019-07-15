@@ -56,7 +56,7 @@ class TextureView {
 
     public:
         /** Returns the id of the TexureView which is consistent for every run. */
-        std::size_t get_id(void) const;
+        std::size_t get_id() const;
 
         /** Returns the 2D pixel coordinates of the given vertex projected into the view. */
         math::Vec2f get_pixel_coords(math::Vec3f const & vertex) const;
@@ -79,37 +79,37 @@ class TextureView {
         TextureView(std::size_t id, mve::CameraInfo const & camera, std::string const & image_file);
 
         /** Returns the position. */
-        math::Vec3f get_pos(void) const;
+        math::Vec3f get_pos() const;
         /** Returns the viewing direction. */
-        math::Vec3f get_viewing_direction(void) const;
+        math::Vec3f get_viewing_direction() const;
         /** Returns the width of the corresponding image. */
-        int get_width(void) const;
+        int get_width() const;
         /** Returns the height of the corresponding image. */
-        int get_height(void) const;
+        int get_height() const;
         /** Returns the number of channels/colors in the corresponding image. */
-        int get_channels(void) const;
+        int get_channels() const;
         /** Returns a reference pointer to the corresponding image. */
-        mve::ByteImage::Ptr get_image(void) const;
+        mve::ByteImage::Ptr get_image() const;
 
         /** Exchange encapsulated image. */
         void bind_image(mve::ByteImage::Ptr new_image);
 
         /** Loads the corresponding image. */
-        void load_image(void);
+        void load_image();
         /** Generates the validity mask. */
-        void generate_validity_mask(void);
+        void generate_validity_mask();
         /** Generates the gradient magnitude image for the encapsulated image. */
-        void generate_gradient_magnitude(void);
+        void generate_gradient_magnitude();
 
         /** Releases the validity mask. */
-        void release_validity_mask(void);
+        void release_validity_mask();
         /** Releases the gradient magnitude image. */
-        void release_gradient_magnitude(void);
+        void release_gradient_magnitude();
         /** Releases the corresponding image. */
-        void release_image(void);
+        void release_image();
 
         /** Erodes the validity mask by one pixel. */
-        void erode_validity_mask(void);
+        void erode_validity_mask();
 
         void
         get_face_info(math::Vec3f const & v1, math::Vec3f const & v2, math::Vec3f const & v3,
@@ -124,37 +124,37 @@ class TextureView {
 
 
 inline std::size_t
-TextureView::get_id(void) const {
+TextureView::get_id() const {
     return id;
 }
 
 inline math::Vec3f
-TextureView::get_pos(void) const {
+TextureView::get_pos() const {
     return pos;
 }
 
 inline math::Vec3f
-TextureView::get_viewing_direction(void) const {
+TextureView::get_viewing_direction() const {
     return viewdir;
 }
 
 inline int
-TextureView::get_width(void) const {
+TextureView::get_width() const {
     return width;
 }
 
 inline int
-TextureView::get_height(void) const {
+TextureView::get_height() const {
     return height;
 }
 
 inline int
-TextureView::get_channels(void) const {
-  return channels;
+TextureView::get_channels() const {
+    return channels;
 }
 
 inline mve::ByteImage::Ptr
-TextureView::get_image(void) const {
+TextureView::get_image() const {
     assert(image != NULL);
     return image;
 }
@@ -194,19 +194,19 @@ TextureView::bind_image(mve::ByteImage::Ptr new_image) {
 }
 
 inline void
-TextureView::release_validity_mask(void) {
+TextureView::release_validity_mask() {
     assert(validity_mask.size() == static_cast<std::size_t>(width * height));
     validity_mask = std::vector<bool>();
 }
 
 inline void
-TextureView::release_gradient_magnitude(void) {
+TextureView::release_gradient_magnitude() {
     assert(gradient_magnitude != NULL);
     gradient_magnitude.reset();
 }
 
 inline void
-TextureView::release_image(void) {
+TextureView::release_image() {
     assert(image != NULL);
     image.reset();
 }
