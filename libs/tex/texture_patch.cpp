@@ -130,7 +130,7 @@ rescale_area(mve::FloatImage::Ptr input_image, const int new_width, const int ne
             for (int x = 0; x < old_width; ++x) {
                 
                 float x_low = x*x_scale;
-                float x_high = (x+1)*x_scale;
+//                float x_high = (x+1)*x_scale;
 
                 float x_prop = std::min(1.0, (floor(x_low) + 1 - x_low)/x_scale);
                 
@@ -275,10 +275,9 @@ TexturePatch::adjust_colors(std::vector<math::Vec3f> const & adjust_values,
       std::vector<float> raw_color(num_channels);
       if (validity_mask->at(i, 0) != 0) {
         std::copy(&image->at(i, 0), &image->at(i, 0) + num_channels, raw_color.begin());
-        std::transform(raw_color.begin(),
-                       raw_color.end(),
-                       raw_color.begin(),
-                       std::bind(std::plus<float>(), std::placeholders::_1, iadjust_values->at(i)));
+        for (auto&& sub_color : raw_color) {
+          sub_color += iadjust_values->at(i);
+        }
         math::Vec3f color = compute_object_class_color(&raw_color);
         std::copy(color.begin(), color.end(), &image->at(i, 0));
       } else { // just set the rgb channels to 0
@@ -390,15 +389,18 @@ TexturePatch::set_pixel_value(math::Vec2i pixel, const std::vector<float> * all_
     assert(blending_mask != NULL);
     assert(valid_pixel(pixel));
     // Only copy the color channels
-    // TODO dwh: remove hard-coded number of colors
-    std::copy(all_channels->begin(), all_channels->begin() + 3, &image->at(pixel[0], pixel[1], 0));
+    // TODO dwh: remove hard-coded number of colors=3
+    auto num_colors = std::min(static_cast<int>(all_channels->size()), 3);
+    std::copy(all_channels->begin(), all_channels->begin() + num_colors, &image->at(pixel[0], pixel[1], 0));
     blending_mask->at(pixel[0], pixel[1], 0) = 128;
 }
 
 // TODO dwh: pass in an object to color mapping structure
 math::Vec3f
 TexturePatch::compute_object_class_color(const std::vector<float> * color){
-  long arg_max = std::distance(color->begin() + 3, std::max_element(color->begin() + 3, color->end()));
+  // TODO dwh: remove hard-coded number of colors=3
+  auto num_colors = std::min(static_cast<int>(color->size()), 3);
+  long arg_max = std::distance(color->begin() + num_colors, std::max_element(color->begin() + num_colors, color->end()));
   math::Vec3f final_class_color(0, 0, 0);
   // TODO !!! map colors from passed argument to method
   // TODO scale by value?

@@ -69,7 +69,7 @@ void textureMesh(const TextureSettings& texture_settings,
     }
 
     std::cout << "Load and prepare mesh: " << std::endl;
-    mve::TriangleMesh::Ptr mesh {nullptr};
+    mve::TriangleMesh::Ptr mesh {};
     try {
         mesh = mve::geom::load_ply_mesh(in_mesh);
     } catch (std::exception& e) {
@@ -247,7 +247,7 @@ void textureMesh(const TextureSettings& texture_settings,
             }
             timer.measure("Running local seam leveling with object classes");
 
-            if ( segmentation_classes != nullptr) {
+            if (segmentation_classes != nullptr) {
                 std::cout << "Setting segmentation class probabilities for " << vertex_projection_infos.size() << " vertices:" << std::endl;
                 segmentation_classes->clear();
                 // set the segmentation class for each vertex
@@ -269,12 +269,10 @@ void textureMesh(const TextureSettings& texture_settings,
                           std::plus<float>());
                   }
                   float normalize_factor = (number_projections > 0)? 255.f / static_cast<float>(number_projections) : 255.f;
-                  std::transform(texture_channels.begin(),
-                      texture_channels.end(),
-                      texture_channels.begin(),
-                      std::bind(std::multiplies<float>(), std::placeholders::_1, normalize_factor));
-                  std::vector<uint8_t> class_probability(texture_channels.begin() + num_colors, texture_channels.end());
-                  segmentation_classes->emplace_back(class_probability);
+                  for (auto&& channel : texture_channels) {
+                    channel *= normalize_factor;
+                  }
+                  segmentation_classes->emplace_back(texture_channels.begin() + num_colors, texture_channels.end());
                 }
                 timer.measure("Creating object class assignments");
                 // TODO dwh: if all we are doing is creating segmentation classes, we can cleanup and return here
@@ -291,7 +289,7 @@ void textureMesh(const TextureSettings& texture_settings,
 
     // Now loop, generating+saving subindexed meshes and atlas
     #pragma omp parallel for schedule(dynamic)
-    for (auto vi = 0; vi < sub_vert_masks.size(); ++vi) {
+    for (std::size_t vi = 0; vi < sub_vert_masks.size(); ++vi) {
         std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi+1 << " of " << sub_vert_masks.size() << std::endl;
         tex::TextureAtlases sub_texture_atlases {};
         tex::TextureAtlases sub_texture_object_class_atlases {};
@@ -328,10 +326,10 @@ void textureMesh(const TextureSettings& texture_settings,
             }
             if (!new_patch->get_faces().empty()) {
                 new_patch->set_label(patch_ct);
-                sub_texture_patches.emplace_back(new_patch);
+                sub_texture_patches.emplace_back(std::move(new_patch));
                 if (num_texture_channels > num_colors) {
                     new_object_class_patch->set_label(patch_ct);
-                    sub_texture_object_class_patches.emplace_back(new_object_class_patch);
+                    sub_texture_object_class_patches.emplace_back(std::move(new_object_class_patch));
                 }
                 patch_ct++;
             }

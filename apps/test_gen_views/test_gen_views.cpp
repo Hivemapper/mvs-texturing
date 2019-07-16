@@ -97,7 +97,7 @@ int main(){
   if (!texture_views.empty()) {
     texture_channels = texture_views[0].get_channels();
   }
-  mve::TriangleMesh::Ptr mesh {nullptr};
+  mve::TriangleMesh::Ptr mesh {};
   try {
     mesh = mve::geom::load_ply_mesh(input_mesh);
   } catch (std::exception& e) {
@@ -236,12 +236,10 @@ int main(){
             continue;
           }
           auto pixel_channels = texture_patch->get_pixel_value_n(projection_info.projection, texture_channels);
-          std::transform(pixel_channels.begin(),
-                         pixel_channels.end(),
-                         pixel_channels.begin(),
-              std::bind(std::multiplies<float>(), std::placeholders::_1, 255.0f));
-          std::vector<uint8_t> class_probability(pixel_channels.begin() + num_colors, pixel_channels.end());
-          segmentation_classes.emplace_back(class_probability);
+          for (auto&& pixel : pixel_channels) {
+            pixel *= 255.0f;
+          }
+          segmentation_classes.emplace_back(pixel_channels.begin() + num_colors, pixel_channels.end());
         }
       }
 
@@ -258,7 +256,7 @@ int main(){
 
   // Now loop, generating+saving subindexed meshes and atlas
 #pragma omp parallel for schedule(dynamic)
-  for (auto vi = 0; vi < sub_vert_masks.size(); ++vi) {
+  for (std::size_t vi = 0; vi < sub_vert_masks.size(); ++vi) {
     util::WallTimer modeltimer {};
     std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi+1 << " of " << sub_vert_masks.size() << std::endl;
     tex::TextureAtlases sub_texture_atlases {};
@@ -298,10 +296,10 @@ int main(){
       }
       if (!new_patch->get_faces().empty()) {
         new_patch->set_label(patch_ct);
-        sub_texture_patches.emplace_back(new_patch);
+        sub_texture_patches.emplace_back(std::move(new_patch));
         if (texture_channels > num_colors) {
           new_object_class_patch->set_label(patch_ct);
-          sub_texture_object_class_patches.emplace_back(new_object_class_patch);
+          sub_texture_object_class_patches.emplace_back(std::move(new_object_class_patch));
         }
         patch_ct++;
       }

@@ -61,10 +61,9 @@ mean_color_of_edge_point_n(std::vector<EdgeProjectionInfo> const & edge_projecti
     }
 
     if (num_textures != 0) {
-        std::transform(color_accum.begin(),
-            color_accum.end(),
-            color_accum.begin(),
-            std::bind(std::multiplies<float>(), std::placeholders::_1, 1.f / static_cast<float>(num_textures)));
+        for (auto&& sub_color : color_accum) {
+          sub_color *= 1.f / static_cast<float>(num_textures);
+        }
     }
     return color_accum;
 }
@@ -165,18 +164,16 @@ draw_line_n(math::Vec2f p1, math::Vec2f p2,
             // replaced this with a vector method
             // color = (1.0f - t) * edge_color[idx] + t * edge_color[idx + 1];
             std::copy(edge_color[idx].begin(), edge_color[idx].end(), color.begin());
-            std::transform(color.begin(),
-                color.end(),
-                color.begin(),
-                std::bind(std::multiplies<float>(), std::placeholders::_1, (1.0f - t)));
+            for (auto&& sub_color : color) {
+              sub_color *= 1.0f - t;
+            }
             std::vector<float> color2(num_texture_channels);
             std::copy(edge_color[idx + 1].begin(),
                 edge_color[idx + 1].end(),
                 color2.begin());
-            std::transform(color2.begin(),
-                color2.end(),
-                color2.begin(),
-                std::bind(std::multiplies<float>(), std::placeholders::_1, t));
+            for (auto&& sub_color : color2) {
+              sub_color *= t;
+            }
             std::transform(color.begin(),
                 color.end(),
                 color2.begin(),
@@ -209,24 +206,24 @@ draw_line_n(math::Vec2f p1, math::Vec2f p2,
 
 struct Pixel {
     math::Vec2i pos {};
-    math::Vec3f const * color {nullptr};
+    math::Vec3f const * color {};
 };
 
 struct Pixel_n {
     math::Vec2i pos {};
-    std::vector<float> * color {nullptr};
+    std::vector<float> * color {};
 };
 
 struct Line {
     math::Vec2i from {};
     math::Vec2i to {};
-    std::vector<math::Vec3f> const * color {nullptr};
+    std::vector<math::Vec3f> const * color {};
 };
 
 struct Line_n {
     math::Vec2i from {};
     math::Vec2i to {};
-    std::vector<std::vector<float>> const * color {nullptr};
+    std::vector<std::vector<float>> const * color {};
 };
 
 void
@@ -275,7 +272,7 @@ local_seam_leveling(UniGraph const & graph,
             line.from = edge_projection_info.p1 + math::Vec2f(0.5f, 0.5f);
             line.to = edge_projection_info.p2 + math::Vec2f(0.5f, 0.5f);
             line.color = &edge_colors[i];
-            lines[edge_projection_info.texture_patch_id].emplace_back(line);
+            lines[edge_projection_info.texture_patch_id].emplace_back(std::move(line));
         }
     }
 
@@ -299,7 +296,7 @@ local_seam_leveling(UniGraph const & graph,
             Pixel pixel {};
             pixel.pos = math::Vec2i(projection_info.projection + math::Vec2f(0.5f, 0.5f));
             pixel.color = &vertex_colors[i];
-            pixels[projection_info.texture_patch_id].emplace_back(pixel);
+            pixels[projection_info.texture_patch_id].emplace_back(std::move(pixel));
         }
     }
 
@@ -382,7 +379,7 @@ local_seam_leveling_n(UniGraph const & graph,
             line.from = edge_projection_info.p1 + math::Vec2f(0.5f, 0.5f);
             line.to = edge_projection_info.p2 + math::Vec2f(0.5f, 0.5f);
             line.color = &edge_colors[i];
-            lines[edge_projection_info.texture_patch_id].emplace_back(line);
+            lines[edge_projection_info.texture_patch_id].emplace_back(std::move(line));
         }
     }
 
@@ -405,10 +402,9 @@ local_seam_leveling_n(UniGraph const & graph,
         }
         if (num_textures == 0) continue;
 
-        std::transform(color_accum.begin(),
-            color_accum.end(),
-            color_accum.begin(),
-            std::bind(std::multiplies<float>(), std::placeholders::_1, 1.f / static_cast<float>(num_textures)));
+        for (auto&& sub_color : color_accum) {
+          sub_color *= 1.f / static_cast<float>(num_textures);
+        }
 
         vertex_colors[i] = std::move(color_accum);
 
@@ -416,7 +412,7 @@ local_seam_leveling_n(UniGraph const & graph,
             Pixel_n pixel {};
             pixel.pos = math::Vec2i(projection_info.projection + math::Vec2f(0.5f, 0.5f));
             pixel.color = &vertex_colors[i];
-            pixels[projection_info.texture_patch_id].emplace_back(pixel);
+            pixels[projection_info.texture_patch_id].emplace_back(std::move(pixel));
         }
     }
 

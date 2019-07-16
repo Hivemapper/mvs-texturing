@@ -36,9 +36,9 @@ class TexturePatch {
         int label;
         Faces faces;
         Texcoords texcoords;
-        mve::FloatImage::Ptr image {nullptr};
-        mve::ByteImage::Ptr validity_mask {nullptr};
-        mve::ByteImage::Ptr blending_mask {nullptr};
+        mve::FloatImage::Ptr image {};
+        mve::ByteImage::Ptr validity_mask {};
+        mve::ByteImage::Ptr blending_mask {};
 
     public:
         /** Constructs a texture patch. */

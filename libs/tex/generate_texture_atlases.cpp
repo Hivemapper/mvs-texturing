@@ -52,7 +52,7 @@ calculate_texture_size(std::vector<TexturePatch::ConstPtr> const & texture_patch
             max_height = std::max(max_height, height);
 
             unsigned int area = width * height;
-            unsigned int waste = area - texture_patch->get_size();
+//            unsigned int waste = area - texture_patch->get_size();
 
             // /* Only consider patches where the information dominates padding. */
             // if (static_cast<double>(waste) / texture_patch->get_size() > 1.0) {
@@ -118,7 +118,7 @@ generate_capped_texture_atlas(std::vector<TexturePatch::Ptr> * orig_texture_patc
     // texture_patches.sort(comp);
 
     std::size_t const total_num_patches = texture_patches.size();
-    std::size_t remaining_patches = texture_patches.size();
+//    std::size_t remaining_patches = texture_patches.size();
     std::ofstream tty("/dev/tty", std::ios_base::out);
 
     // determine texture patch effective resolutions
@@ -126,7 +126,7 @@ generate_capped_texture_atlas(std::vector<TexturePatch::Ptr> * orig_texture_patc
     std::vector<double> original_pixel_sizes;
     double total_geometry_size = 0;
     double total_pixel_size = 0;
-    for (auto i = 0; i < total_num_patches; ++i) {
+    for (std::size_t i = 0; i < total_num_patches; ++i) {
         original_geometry_sizes.push_back(texture_patches[i]->compute_geometric_area(vertices, faces));
         original_pixel_sizes.push_back(texture_patches[i]->compute_pixel_area());
         total_geometry_size += original_geometry_sizes.back();
@@ -142,7 +142,7 @@ generate_capped_texture_atlas(std::vector<TexturePatch::Ptr> * orig_texture_patc
         TextureAtlas::Ptr texture_atlas = TextureAtlas::create(atlas_size);
 
         bool atlas_complete = true;
-        for (auto i = 0; i < total_num_patches; ++i) {
+        for (std::size_t i = 0; i < total_num_patches; ++i) {
             TexturePatch::Ptr patch = TexturePatch::create(texture_patches[i]);
             double patch_ratio = original_pixel_sizes[i]/original_geometry_sizes[i];
             // rescale the patch if it's larger than the current max ratio and of sufficient size to scale meaningfully
