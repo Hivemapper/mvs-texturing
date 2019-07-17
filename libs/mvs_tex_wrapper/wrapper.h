@@ -35,5 +35,7 @@ void textureMesh(const TextureSettings& texture_settings,
                  std::shared_ptr<EuclideanViewMask> ev_mask = NULL,
                  uint atlas_size = 0,
                  float* hidden_face_proportion = NULL,
-                 std::vector<std::vector<uint8_t>> *segmentation_classes = nullptr);
+                 std::vector<std::vector<uint8_t>> *segmentation_classes = nullptr,
+                 bool do_texture_atlas = true); // if segmentation classes are to be set (i.e. not a nullptr), then setting this to false stops method after setting segmentation classes to avoid wasting time if textures are not needed.
+// setting to false only has an effect if image has more channels than colors--otherwise defaults to doing the atlas every time
 }  // namespace MvsTexturing
