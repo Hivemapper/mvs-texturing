@@ -5,3 +5,4 @@ elibs/
 bazel-*
 /.idea
 cmake-build-debug/
+proj/

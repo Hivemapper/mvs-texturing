@@ -126,13 +126,13 @@ rescale_area(mve::FloatImage::Ptr input_image, const int new_width, const int ne
     for (int ci = 0; ci < input_image->channels(); ++ci) {
         for (int y = 0; y < old_height; ++y) {
             float y_low = y*y_scale;
-            float y_prop = std::min(1.0, (floor(y_low) + 1 - y_low)/y_scale);
+            float y_prop = std::min(1.0f, (floor(y_low) + 1 - y_low)/y_scale);
             for (int x = 0; x < old_width; ++x) {
                 
                 float x_low = x*x_scale;
 //                float x_high = (x+1)*x_scale;
 
-                float x_prop = std::min(1.0, (floor(x_low) + 1 - x_low)/x_scale);
+                float x_prop = std::min(1.0f, (floor(x_low) + 1 - x_low)/x_scale);
                 
                 float val = input_image->at(x, y, ci)*x_scale*y_scale;
                 if (x_prop > 0.999 && y_prop > 0.999) {
