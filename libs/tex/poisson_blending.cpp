@@ -52,14 +52,16 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
 
     assert(src->width() == mask->width() && mask->width() == dest->width());
     assert(src->height() == mask->height() && mask->height() == dest->height());
-    assert(src->channels() == 3 && dest->channels() == 3);
+    assert(src->channels() >= 3 && dest->channels() == src->channels());
     assert(mask->channels() == 1);
     assert(valid_mask(mask));
 
     const int n = dest->get_pixel_amount();
     const int width = dest->width();
     const int height = dest->height();
-    const int channels = dest->channels();
+    // only do poisson on the color channels--first three
+    // TODO dwh: get rid of hard coded color channels=3
+    const int channels = std::min(dest->channels(), 3);
 
     mve::Image<int>::Ptr indices = mve::Image<int>::create(width, height, 1);
     indices->fill(-1);
@@ -75,7 +77,7 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
     std::vector<math::Vec3f> coefficients_b;
     coefficients_b.resize(nnz);
     // std::cout << "blend 0 " << std::endl;
-    std::vector<Eigen::Triplet<float, int>, Eigen::aligned_allocator<Eigen::Triplet<float, int>> > coefficients_A;
+    std::vector<Eigen::Triplet<float, int>, Eigen::aligned_allocator<Eigen::Triplet<float, int>>> coefficients_A;
     coefficients_A.reserve(nnz); //TODO better estimate...
     // std::cout << "blend A " << std::endl;
     for (int i = 0; i < n; ++i) {
@@ -119,7 +121,7 @@ poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,
     SpMat A(nnz, nnz);
     A.setFromTriplets(coefficients_A.begin(), coefficients_A.end());
     // std::cout << "blend C " << std::endl;
-    Eigen::SparseLU<SpMat, Eigen::COLAMDOrdering<int> > solver;
+    Eigen::SparseLU<SpMat, Eigen::COLAMDOrdering<int>> solver;
     // std::cout << "blend Cp " << std::endl;
     // std::cout << nnz << std::endl;
     solver.compute(A);

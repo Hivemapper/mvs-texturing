@@ -28,27 +28,34 @@ void textureMesh(const TextureSettings& texture_settings,
                  const std::vector<std::vector<bool>>& sub_vert_masks,
                  const std::vector<std::string>& sub_names,
                  std::shared_ptr<EuclideanViewMask> ev_mask,
-                 uint atlas_size,
-                 float* hidden_face_proportion) {
+                 uint atlas_size, // not currently used due to commented out generate_capped_texture_atlas method
+                 float* hidden_face_proportion,
+                 std::vector<std::vector<uint8_t>>* segmentation_classes) {
     bool write_timings = false;
     bool write_intermediate_results = false;
     bool write_view_selection_model = false;
+    // the number of channels in the image
+    int num_texture_channels = 0;
+    // the number of image channels that describe color -- additional channels indicate segmentation classes
+    // TODO dwh: get rid of hard coded color channels=3
+    int num_colors = 3;
 
     std::cout << "Texturing ...\n Eigen version:" << std::endl;
     std::cout << EIGEN_WORLD_VERSION << "." << EIGEN_MAJOR_VERSION << "." << EIGEN_MINOR_VERSION<< std::endl;
 
-    std::string data_cost_file = "";
-    std::string labeling_file = "";
+    std::string data_cost_file;
+    std::string labeling_file;
 
     Timer timer;
-    util::WallTimer wtimer;
+    util::WallTimer wtimer {};
 
     //
     // Prep Filesystem + load data
     //
 
-    if (atlas_size == 0)
-        atlas_size = 4096;
+//    if (atlas_size == 0) { // only used in commented out generate_capped_texture_atlas method below
+//        atlas_size = 4096;
+//    }
     std::string const out_dir = util::fs::dirname(out_prefix);
 
     if (!util::fs::dir_exists(out_dir.c_str())) {
@@ -62,7 +69,7 @@ void textureMesh(const TextureSettings& texture_settings,
     }
 
     std::cout << "Load and prepare mesh: " << std::endl;
-    mve::TriangleMesh::Ptr mesh;
+    mve::TriangleMesh::Ptr mesh {};
     try {
         mesh = mve::geom::load_ply_mesh(in_mesh);
     } catch (std::exception& e) {
@@ -73,8 +80,11 @@ void textureMesh(const TextureSettings& texture_settings,
     tex::prepare_mesh(&mesh_info, mesh);
 
     std::cout << "Generating texture views: " << std::endl;
-    tex::TextureViews texture_views;
+    tex::TextureViews texture_views {};
     tex::generate_texture_views(in_scene, &texture_views, tmp_dir);
+    if (!texture_views.empty()) {
+        num_texture_channels = texture_views[0].get_channels();
+    }
 
     timer.measure("Loading");
 
@@ -87,23 +97,24 @@ void textureMesh(const TextureSettings& texture_settings,
     //
     // Build Processing Settings
     //
-    tex::Settings settings;
-    if (texture_settings.do_use_gmi_term)
-        settings.data_term = tex::DATA_TERM_GMI;
-    else
-        settings.data_term = tex::DATA_TERM_AREA;
-
-    if (texture_settings.do_gauss_clamping)
+    tex::Settings settings {};
+    if (texture_settings.do_use_gmi_term) {
+       settings.data_term = tex::DATA_TERM_GMI;
+    } else {
+       settings.data_term = tex::DATA_TERM_AREA;
+    }
+    if (texture_settings.do_gauss_clamping) {
         settings.outlier_removal = tex::OUTLIER_REMOVAL_GAUSS_CLAMPING;
-    else if (texture_settings.do_gauss_damping)
+    } else if (texture_settings.do_gauss_damping) {
         settings.outlier_removal = tex::OUTLIER_REMOVAL_GAUSS_DAMPING;
-    else
+    } else {
         settings.outlier_removal = tex::OUTLIER_REMOVAL_NONE;
-
-    if (texture_settings.do_gamma_tone_mapping)
+    }
+    if (texture_settings.do_gamma_tone_mapping) {
         settings.tone_mapping = tex::TONE_MAPPING_GAMMA;
-    else
+    } else {
         settings.tone_mapping = tex::TONE_MAPPING_NONE;
+    }
 
     settings.geometric_visibility_test = texture_settings.do_geometric_visibility_test;
     settings.global_seam_leveling = texture_settings.do_global_seam_leveling;
@@ -113,7 +124,7 @@ void textureMesh(const TextureSettings& texture_settings,
 
     if (labeling_file.empty()) {
         std::cout << "View selection:" << std::endl;
-        util::WallTimer rwtimer;
+        util::WallTimer rwtimer {};
 
         tex::DataCosts data_costs(num_faces, texture_views.size());
         if (data_cost_file.empty()) {
@@ -129,7 +140,7 @@ void textureMesh(const TextureSettings& texture_settings,
             std::cout << "\tLoading data cost file... " << std::flush;
             try {
                 tex::DataCosts::load_from_file(data_cost_file, &data_costs);
-            } catch (util::FileException e) {
+            } catch (util::FileException &e) {
                 std::cout << "failed!" << std::endl;
                 std::cerr << e.what() << std::endl;
                 std::exit(EXIT_FAILURE);
@@ -179,12 +190,13 @@ void textureMesh(const TextureSettings& texture_settings,
         std::cout << "done." << std::endl;
     }
 
-    // generate full texture patchs
+    // generate full texture patches
     tex::TexturePatches texture_patches;
+    tex::TexturePatches texture_object_class_patches;
     {
         /* Create texture patches and adjust them. */
 
-        tex::VertexProjectionInfos vertex_projection_infos;
+        tex::VertexProjectionInfos vertex_projection_infos {};
         std::cout << "Generating texture patches:" << std::endl;
         tex::generate_texture_patches(graph, mesh, mesh_info, &texture_views,
             settings, &vertex_projection_infos, &texture_patches);
@@ -206,32 +218,95 @@ void textureMesh(const TextureSettings& texture_settings,
             timer.measure("Calculating texture patch validity masks");
         }
 
-        if (settings.local_seam_leveling) {
-            std::cout << "Running local seam leveling:" << std::endl;
-            tex::local_seam_leveling(graph, mesh, vertex_projection_infos, &texture_patches);
+        if (num_texture_channels > num_colors) {
+            std::cout << "Making object class textures:" << std::endl;
+            // Build a copy of texture_patches for object classes
+            for (const auto &texture_patch : texture_patches) {
+                texture_object_class_patches.emplace_back(texture_patch->duplicate());
+            }
+
+            // This method creates a synthetic color image where each rgb color represents a different class
+            std::cout << "Building object class texture image:" << std::endl;
+            // TODO dwh: if all we are doing is creating segmentation classes, we probably don't need to do this
+            #pragma omp parallel for schedule(dynamic)
+            for (std::size_t i = 0; i < texture_object_class_patches.size(); ++i) {
+                TexturePatch::Ptr texture_object_class_patch = texture_object_class_patches[i];
+                std::vector<math::Vec3f> patch_adjust_values(texture_object_class_patch->get_faces().size() * 3, math::Vec3f(0.0f));
+                texture_object_class_patch->adjust_colors(patch_adjust_values, num_texture_channels);
+            }
+
+            // For n-channel, do the following on all channels including classes
+            if (settings.local_seam_leveling) {
+                // This function call does seam leveling on everything including rgb class data
+                std::cout << "Running local seam leveling with classes:" << std::endl;
+                tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches, num_texture_channels, &texture_object_class_patches);
+                // TODO dwh: if we are not outputting an obj file the following is a better option than the above:
+//                // This function call ignores rgb object segmentation class data while doing seam leveling and just does rgb channels
+//                std::cout << "Running local seam leveling ignoring object classes:" << std::endl;
+//                tex::local_seam_leveling_n(graph, mesh, vertex_projection_infos, &texture_patches, num_texture_channels);
+            }
+            timer.measure("Running local seam leveling with object classes");
+
+            if (segmentation_classes != nullptr) {
+                std::cout << "Setting segmentation class probabilities for " << vertex_projection_infos.size() << " vertices:" << std::endl;
+                segmentation_classes->clear();
+                // set the segmentation class for each vertex
+                for (std::size_t i = 0; i < vertex_projection_infos.size(); ++i) {
+                  std::vector<tex::VertexProjectionInfo> const &projection_infos = vertex_projection_infos[i];
+                  std::vector<float> texture_channels(num_texture_channels);
+                  int number_projections = 0;
+                  for (tex::VertexProjectionInfo const &projection_info : projection_infos) {
+                      TexturePatch::Ptr texture_patch = texture_patches.at(projection_info.texture_patch_id);
+                      if (texture_patch->get_label() == 0) {
+                        continue;
+                      }
+                      number_projections += 1;
+                      auto pixel_channels = texture_patch->get_pixel_value_n(projection_info.projection, num_texture_channels);
+                      std::transform(texture_channels.begin(),
+                          texture_channels.end(),
+                          pixel_channels.begin(),
+                          texture_channels.begin(),
+                          std::plus<float>());
+                  }
+                  float normalize_factor = (number_projections > 0)? 255.f / static_cast<float>(number_projections) : 255.f;
+                  for (auto&& channel : texture_channels) {
+                    channel *= normalize_factor;
+                  }
+                  segmentation_classes->emplace_back(texture_channels.begin() + num_colors, texture_channels.end());
+                }
+                timer.measure("Creating object class assignments");
+                // TODO dwh: if all we are doing is creating segmentation classes, we can cleanup and return here
+            }
+
+        } else {
+            if (settings.local_seam_leveling) {
+                std::cout << "Running local seam leveling:" << std::endl;
+                tex::local_seam_leveling(graph, mesh, vertex_projection_infos, &texture_patches);
+            }
+            timer.measure("Running local seam leveling");
         }
-        timer.measure("Running local seam leveling");
     }
 
     // Now loop, generating+saving subindexed meshes and atlas
     #pragma omp parallel for schedule(dynamic)
-    for (int vi = 0; vi < sub_vert_masks.size(); ++vi) {
+    for (std::size_t vi = 0; vi < sub_vert_masks.size(); ++vi) {
         std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi+1 << " of " << sub_vert_masks.size() << std::endl;
-        tex::TextureAtlases sub_texture_atlases;
-        const std::vector<bool>& vertex_mask(sub_vert_masks[vi]);
+        tex::TextureAtlases sub_texture_atlases {};
+        tex::TextureAtlases sub_texture_object_class_atlases {};
+        const std::vector<bool>& vertex_mask {sub_vert_masks[vi]};
         std::vector<bool> inverted_mask(vertex_mask.size());
         for (std::size_t i = 0; i < vertex_mask.size(); ++i)
             inverted_mask[i] = !vertex_mask[i];
 
-        const std::string& sub_name(sub_names[vi]);
-        std::vector<std::size_t> face_indices;
+        const std::string& sub_name {sub_names[vi]};
+        std::vector<std::size_t> face_indices {};
         // generate face reindex
         generate_face_reindex(vertex_mask, mesh->get_faces(), face_indices);
         // redo mesh
         mve::TriangleMesh::Ptr sub_mesh = mesh->duplicate();
         sub_mesh->delete_vertices_fix_faces(inverted_mask);
 
-        if (sub_mesh->get_faces().size() == 0) {
+        if (sub_mesh->get_faces().empty()) {
             std::cout << "No Faces - skipping Sub-Model " << sub_name << std::endl;
             continue;
         }
@@ -240,22 +315,31 @@ void textureMesh(const TextureSettings& texture_settings,
                   << mesh->get_faces().size()/3 << " faces." << std::endl;
 
         // redo_patches
-        tex::TexturePatches sub_texture_patches;
+        tex::TexturePatches sub_texture_patches {};
+        tex::TexturePatches sub_texture_object_class_patches {};
         size_t patch_ct = 0;
         for(std::size_t i = 0; i < texture_patches.size(); ++i) {
             TexturePatch::Ptr new_patch = TexturePatch::create(texture_patches[i], face_indices);
+            TexturePatch::Ptr new_object_class_patch = nullptr;
+            if (num_texture_channels > num_colors) {
+              new_object_class_patch = TexturePatch::create(texture_object_class_patches[i], face_indices);
+            }
             if (!new_patch->get_faces().empty()) {
                 new_patch->set_label(patch_ct);
-                sub_texture_patches.push_back(new_patch);
+                sub_texture_patches.emplace_back(std::move(new_patch));
+                if (num_texture_channels > num_colors) {
+                    new_object_class_patch->set_label(patch_ct);
+                    sub_texture_object_class_patches.emplace_back(std::move(new_object_class_patch));
+                }
                 patch_ct++;
             }
         }
 
-        if (sub_texture_patches.size() == 0) {
+        if (texture_patches.empty()) {
             std::cout << "No Texture Patches - skipping Sub-Model " << sub_name << std::endl;
             continue;
         }
-         std::cout << "And " << sub_texture_patches.size() << " of "
+         std::cout << sub_texture_patches.size() << " of "
           << texture_patches.size() << " patches." << std::endl;
         {
             /* Generate texture atlases. */
@@ -277,14 +361,41 @@ void textureMesh(const TextureSettings& texture_settings,
         /* Create and write out obj model. */
         {
             std::cout << "Building objmodel:" << std::endl;
-            tex::Model sub_model;
+            tex::Model sub_model {};
             tex::build_model(sub_mesh, sub_texture_atlases, &sub_model);
             timer.measure("Building OBJ model");
 
             std::cout << "\tSaving model to " << out_prefix+sub_name << "... " << std::flush;
-            tex::Model::save(sub_model, out_prefix+sub_name);
             std::cout << "done." << std::endl;
+            tex::Model::save(sub_model, out_prefix+sub_name);
             timer.measure("Saving");
+        }
+
+        if (num_texture_channels > num_colors) {
+            // TODO dwh: note that this requires a color mapping for each class which will change with different models but is currently hard-coded --either make this section optional with an ability to pass in a color mapping (nice for testing) or remove this
+            {
+                /* Generate texture atlases for object classes. */
+                std::cout << "Generating object class texture atlases:" << std::endl;
+                tex::generate_texture_atlases(&sub_texture_object_class_patches,
+                                              settings,
+                                              &sub_texture_object_class_atlases,
+                                              mesh->get_vertices(),
+                                              mesh->get_faces());
+            }
+
+            /* Create and write out obj model for object classes. */
+            {
+                std::cout << "Building object class objmodel:" << std::endl;
+                tex::Model sub_model {};
+                tex::build_model(sub_mesh, sub_texture_object_class_atlases, &sub_model);
+                timer.measure("Building OBJ class model");
+
+                std::cout << "\tSaving object class model to " << out_prefix+sub_name << "_classes... " << std::flush;
+                std::cout << "done." << std::endl;
+                tex::Model::save(sub_model, out_prefix+sub_name+"_classes");
+                timer.measure("Saving object model");
+            }
+
         }
 
         timer.measure("Total");
@@ -345,8 +456,5 @@ void generate_face_reindex(const std::vector<bool>& mask,
         }
     }
 }
-
-
-
 
 }  // namespace MvsTexturing

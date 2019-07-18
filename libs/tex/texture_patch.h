@@ -22,7 +22,7 @@ int const texture_patch_border = 1;
 
 /**
   * Class representing a texture patch.
-  * Contains additionaly to the rectangular part of the TextureView
+  * Contains additionally to the rectangular part of the TextureView
   * the faces which it textures and their relative texture coordinates.
   */
 class TexturePatch {
@@ -36,9 +36,9 @@ class TexturePatch {
         int label;
         Faces faces;
         Texcoords texcoords;
-        mve::FloatImage::Ptr image;
-        mve::ByteImage::Ptr validity_mask;
-        mve::ByteImage::Ptr blending_mask;
+        mve::FloatImage::Ptr image {};
+        mve::ByteImage::Ptr validity_mask {};
+        mve::ByteImage::Ptr blending_mask {};
 
     public:
         /** Constructs a texture patch. */
@@ -53,46 +53,50 @@ class TexturePatch {
         static TexturePatch::Ptr create(int label, std::vector<std::size_t> const & faces,
             std::vector<math::Vec2f> const & texcoords, mve::FloatImage::Ptr image);
 
-
-
-        TexturePatch::Ptr duplicate(void);
+        TexturePatch::Ptr duplicate();
 
         void rescale(double ratio);
 
         /** Adjust the image colors and update validity mask. */
-        void adjust_colors(std::vector<math::Vec3f> const & adjust_values);
+        void adjust_colors(std::vector<math::Vec3f> const & adjust_values, int num_channels = 3);
 
         math::Vec3f get_pixel_value(math::Vec2f pixel) const;
+        std::vector<float> get_pixel_value_n(math::Vec2f pixel, int num_channels) const;
+
         void set_pixel_value(math::Vec2i pixel, math::Vec3f color);
+        void set_pixel_value(math::Vec2i pixel, const std::vector<float> * color);
+        void set_pixel_object_class_value(math::Vec2i pixel, const std::vector<float> * color);
+        static math::Vec3f compute_object_class_color(const std::vector<float> * color);
 
         bool valid_pixel(math::Vec2i pixel) const;
         bool valid_pixel(math::Vec2f pixel) const;
 
-        std::vector<std::size_t> & get_faces(void);
-        std::vector<std::size_t> const & get_faces(void) const;
-        std::vector<math::Vec2f> & get_texcoords(void);
-        std::vector<math::Vec2f> const & get_texcoords(void) const;
+        std::vector<std::size_t> & get_faces();
+        std::vector<std::size_t> const & get_faces() const;
+        std::vector<math::Vec2f> & get_texcoords();
+        std::vector<math::Vec2f> const & get_texcoords() const;
 
-        mve::FloatImage::Ptr get_image(void);
+        mve::FloatImage::Ptr get_image();
 
-        mve::FloatImage::ConstPtr get_image(void) const;
-        mve::ByteImage::ConstPtr get_validity_mask(void) const;
-        mve::ByteImage::ConstPtr get_blending_mask(void) const;
+        mve::FloatImage::ConstPtr get_image() const;
+        mve::ByteImage::ConstPtr get_validity_mask() const;
+        mve::ByteImage::ConstPtr get_blending_mask() const;
 
-        std::pair<float, float> get_min_max(void) const;
+//        std::pair<float, float> get_min_max(void) const;
 
-        void release_blending_mask(void);
+        void release_blending_mask();
         void prepare_blending_mask(std::size_t strip_width);
 
-        void erode_validity_mask(void);
+//        void erode_validity_mask();
 
         void blend(mve::FloatImage::ConstPtr orig);
 
-        int get_label(void) const;
+        int get_label() const;
         void set_label(int l) {label = l;}
-        int get_width(void) const;
-        int get_height(void) const;
-        int get_size(void) const;
+        int get_width() const;
+        int get_height() const;
+        int get_channels() const;
+        int get_size() const;
 
         double compute_geometric_area(const std::vector<math::Vec3f>& vertices,
                                       const std::vector<uint>& mesh_faces) const;
@@ -116,74 +120,79 @@ TexturePatch::create(int label, std::vector<std::size_t> const & faces,
 }
 
 inline TexturePatch::Ptr
-TexturePatch::duplicate(void) {
+TexturePatch::duplicate() {
     return Ptr(new TexturePatch(*this));
 }
 
 inline int
-TexturePatch::get_label(void) const {
+TexturePatch::get_label() const {
     return label;
 }
 
 inline int
-TexturePatch::get_width(void) const {
+TexturePatch::get_width() const {
     return image->width();
 }
 
 inline int
-TexturePatch::get_height(void) const {
+TexturePatch::get_height() const {
     return image->height();
 }
 
+inline int
+TexturePatch::get_channels() const {
+  return image->channels();
+}
+
 inline mve::FloatImage::Ptr
-TexturePatch::get_image(void) {
+TexturePatch::get_image() {
     return image;
 }
 
 inline mve::FloatImage::ConstPtr
-TexturePatch::get_image(void) const {
+TexturePatch::get_image() const {
     return image;
 }
 
 inline mve::ByteImage::ConstPtr
-TexturePatch::get_validity_mask(void) const {
+TexturePatch::get_validity_mask() const {
     return validity_mask;
 }
 
 inline mve::ByteImage::ConstPtr
-TexturePatch::get_blending_mask(void) const {
-    assert(blending_mask != NULL);
+TexturePatch::get_blending_mask() const {
+    assert(blending_mask != nullptr);
     return blending_mask;
 }
 
 inline void
-TexturePatch::release_blending_mask(void) {
-    assert(blending_mask != NULL);
+TexturePatch::release_blending_mask() {
+    assert(blending_mask != nullptr);
     blending_mask.reset();
 }
 
 inline std::vector<math::Vec2f> &
-TexturePatch::get_texcoords(void) {
+TexturePatch::get_texcoords() {
     return texcoords;
 }
 
 inline std::vector<std::size_t> &
-TexturePatch::get_faces(void) {
+TexturePatch::get_faces() {
     return faces;
 }
 
 inline std::vector<math::Vec2f> const &
-TexturePatch::get_texcoords(void) const {
+TexturePatch::get_texcoords() const {
     return texcoords;
 }
 
 inline std::vector<std::size_t> const &
-TexturePatch::get_faces(void) const {
+TexturePatch::get_faces() const {
     return faces;
 }
 
 inline int
-TexturePatch::get_size(void) const {
+TexturePatch::get_size() const {
     return get_width() * get_height();
 }
 

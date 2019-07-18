@@ -99,7 +99,7 @@ from_images_and_camera_files(std::string const & path,
 
             /* Image file (based on extension)? */
             std::string img_file_ext = util::string::uppercase(util::string::right(img_file.name, 4));
-            if (img_file_ext != ".PNG" && img_file_ext != ".JPG" &&
+            if (img_file_ext != ".PNG" && img_file_ext != ".JPG" && img_file_ext != ".TIF" &&
                 img_file_ext != "TIFF" && img_file_ext != "JPEG") continue;
 
             files.push_back(cam_file.get_absolute_name());

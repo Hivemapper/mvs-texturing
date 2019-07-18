@@ -34,5 +34,6 @@ void textureMesh(const TextureSettings& texture_settings,
                  const std::vector<std::string>& sub_names,
                  std::shared_ptr<EuclideanViewMask> ev_mask = NULL,
                  uint atlas_size = 0,
-                 float* hidden_face_proportion = NULL);
+                 float* hidden_face_proportion = NULL,
+                 std::vector<std::vector<uint8_t>> *segmentation_classes = nullptr);
 }  // namespace MvsTexturing
