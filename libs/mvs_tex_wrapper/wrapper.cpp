@@ -30,9 +30,7 @@ void textureMesh(const TextureSettings &texture_settings,
                  float *hidden_face_proportion,
                  std::vector<std::vector<uint8_t>> *segmentation_classes,
                  bool do_texture_atlas) {
-  bool write_timings = false;
   bool write_intermediate_results = false;
-  bool write_view_selection_model = false;
   // the number of channels in the image
   int num_texture_channels = 0;
   // the number of image channels that describe color -- additional channels
@@ -340,8 +338,9 @@ void textureMesh(const TextureSettings &texture_settings,
       tex::TextureAtlases sub_texture_object_class_atlases{};
       const std::vector<bool> &vertex_mask{sub_vert_masks[vi]};
       std::vector<bool> inverted_mask(vertex_mask.size());
-      for (std::size_t i = 0; i < vertex_mask.size(); ++i)
+      for (std::size_t i = 0; i < vertex_mask.size(); ++i) {
         inverted_mask[i] = !vertex_mask[i];
+      }
 
       const std::string &sub_name{sub_names[vi]};
       std::vector<std::size_t> face_indices{};

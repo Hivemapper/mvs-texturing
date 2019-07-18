@@ -6,3 +6,4 @@ bazel-*
 /.idea
 cmake-build-debug/
 proj/
+compile_commands.json

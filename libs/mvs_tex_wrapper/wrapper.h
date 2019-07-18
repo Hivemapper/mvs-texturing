@@ -33,8 +33,8 @@ void textureMesh(
     const std::string &in_mesh, const std::string &out_prefix,
     const std::vector<std::vector<bool>> &sub_vert_masks,
     const std::vector<std::string> &sub_names,
-    std::shared_ptr<EuclideanViewMask> ev_mask = NULL, uint atlas_size = 0,
-    float *hidden_face_proportion = NULL,
+    std::shared_ptr<EuclideanViewMask> ev_mask = nullptr, uint atlas_size = 0,
+    float *hidden_face_proportion = nullptr,
     std::vector<std::vector<uint8_t>> *segmentation_classes = nullptr,
     bool do_texture_atlas =
         true); // if segmentation classes are to be set (i.e. not a nullptr),
