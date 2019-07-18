@@ -21,26 +21,31 @@ struct TextureSettings {
   bool do_keep_unseen_faces = true;
 };
 
-void generate_vertex_reindex(const std::vector<bool> &mask,
-                             std::vector<std::size_t> &new_indices);
+void generate_vertex_reindex(
+    const std::vector<bool> &mask,
+    std::vector<std::size_t> &new_indices);
 
 void generate_face_reindex(const std::vector<bool> &mask,
-                           const std::vector<unsigned int> &old_faces,
-                           std::vector<std::size_t> &new_indices);
+    const std::vector<unsigned int> &old_faces,
+    std::vector<std::size_t> &new_indices);
 
 void textureMesh(
-    const TextureSettings &texture_settings, const std::string &in_scene,
-    const std::string &in_mesh, const std::string &out_prefix,
+    const TextureSettings &texture_settings,
+    const std::string &in_scene,
+    const std::string &in_mesh,
+    const std::string &out_prefix,
     const std::vector<std::vector<bool>> &sub_vert_masks,
     const std::vector<std::string> &sub_names,
-    std::shared_ptr<EuclideanViewMask> ev_mask = nullptr, uint atlas_size = 0,
+    std::shared_ptr<EuclideanViewMask> ev_mask = nullptr,
+    uint atlas_size = 0,
     float *hidden_face_proportion = nullptr,
     std::vector<std::vector<uint8_t>> *segmentation_classes = nullptr,
-    bool do_texture_atlas =
-        true); // if segmentation classes are to be set (i.e. not a nullptr),
-               // then setting this to false stops method after setting
-               // segmentation classes to avoid wasting time if textures are not
-               // needed.
-// setting to false only has an effect if image has more channels than
-// colors--otherwise defaults to doing the atlas every time
+    bool do_texture_atlas = true);
+      //  if segmentation classes are to be set (i.e. not a nullptr),
+      //  then setting this to false stops method after setting
+      //  segmentation classes to avoid wasting time if textures are not
+      //  needed. setting to false only has an effect if image has more
+      //  channels than colors--otherwise defaults to doing the atlas
+      //  every time
+
 } // namespace MvsTexturing

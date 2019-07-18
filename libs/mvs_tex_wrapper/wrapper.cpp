@@ -19,17 +19,18 @@
 
 namespace MvsTexturing {
 
-void textureMesh(const TextureSettings &texture_settings,
-                 const std::string &in_scene, const std::string &in_mesh,
-                 const std::string &out_prefix,
-                 const std::vector<std::vector<bool>> &sub_vert_masks,
-                 const std::vector<std::string> &sub_names,
-                 std::shared_ptr<EuclideanViewMask> ev_mask,
-                 uint atlas_size, // not currently used due to commented out
-                                  // generate_capped_texture_atlas method
-                 float *hidden_face_proportion,
-                 std::vector<std::vector<uint8_t>> *segmentation_classes,
-                 bool do_texture_atlas) {
+void textureMesh(
+    const TextureSettings &texture_settings,
+    const std::string &in_scene,
+    const std::string &in_mesh,
+    const std::string &out_prefix,
+    const std::vector<std::vector<bool>> &sub_vert_masks,
+    const std::vector<std::string> &sub_names,
+    std::shared_ptr<EuclideanViewMask> ev_mask,
+    uint atlas_size,
+    float *hidden_face_proportion,
+    std::vector<std::vector<uint8_t>> *segmentation_classes,
+    bool do_texture_atlas) {
   bool write_intermediate_results = false;
   // the number of channels in the image
   int num_texture_channels = 0;
@@ -220,7 +221,7 @@ void textureMesh(const TextureSettings &texture_settings,
       ProgressCounter texture_patch_counter(
           "Calculating validity masks for texture patches",
           texture_patches.size());
-#pragma omp parallel for schedule(dynamic)
+      #pragma omp parallel for schedule(dynamic)
       for (std::size_t i = 0; i < texture_patches.size(); ++i) {
         texture_patch_counter.progress<SIMPLE>();
         TexturePatch::Ptr texture_patch = texture_patches[i];
@@ -244,7 +245,7 @@ void textureMesh(const TextureSettings &texture_settings,
         // This method creates a synthetic color image where each rgb color
         // represents a different class
         std::cout << "Building object class texture image:" << std::endl;
-#pragma omp parallel for schedule(dynamic)
+        #pragma omp parallel for schedule(dynamic)
         for (std::size_t i = 0; i < texture_object_class_patches.size(); ++i) {
           TexturePatch::Ptr texture_object_class_patch =
               texture_object_class_patches[i];
@@ -329,8 +330,8 @@ void textureMesh(const TextureSettings &texture_settings,
   }
 
   if (do_texture_atlas) { // do this--otherwise skip to cleanup and exit
-// Now loop, generating+saving subindexed meshes and atlas
-#pragma omp parallel for schedule(dynamic)
+    // Now loop, generating+saving subindexed meshes and atlas
+    #pragma omp parallel for schedule(dynamic)
     for (std::size_t vi = 0; vi < sub_vert_masks.size(); ++vi) {
       std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi + 1
                 << " of " << sub_vert_masks.size() << std::endl;
@@ -463,8 +464,9 @@ void textureMesh(const TextureSettings &texture_settings,
   util::fs::rmdir(tmp_dir.c_str());
 }
 
-void generate_vertex_reindex(const std::vector<bool> &mask,
-                             std::vector<std::size_t> &new_indices) {
+void generate_vertex_reindex(
+    const std::vector<bool> &mask,
+    std::vector<std::size_t> &new_indices) {
   new_indices.resize(mask.size());
   std::size_t ct = 0;
   for (std::size_t i = 0; i < new_indices.size(); ++i) {
@@ -477,8 +479,10 @@ void generate_vertex_reindex(const std::vector<bool> &mask,
   }
 }
 
-bool is_valid_tri(std::size_t i, const std::vector<bool> &mask,
-                  const std::vector<unsigned int> &old_faces) {
+bool is_valid_tri(
+    std::size_t i,
+    const std::vector<bool> &mask,
+    const std::vector<unsigned int> &old_faces) {
   return mask[old_faces[i * 3]] && mask[old_faces[i * 3 + 1]] &&
          mask[old_faces[i * 3 + 2]];
 }
@@ -486,9 +490,10 @@ bool is_valid_tri(std::size_t i, const std::vector<bool> &mask,
 /**
  * @brief Strange reindexing to match the swap-based MVE reduction
  */
-void generate_face_reindex(const std::vector<bool> &mask,
-                           const std::vector<unsigned int> &old_faces,
-                           std::vector<std::size_t> &new_indices) {
+void generate_face_reindex(
+    const std::vector<bool> &mask,
+    const std::vector<unsigned int> &old_faces,
+    std::vector<std::size_t> &new_indices) {
   new_indices.resize(old_faces.size() / 3);
   std::size_t front = 0;
   std::size_t back = new_indices.size() - 1;
