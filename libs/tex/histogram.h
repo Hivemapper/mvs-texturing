@@ -10,37 +10,38 @@
 #ifndef TEX_HISTOGRAM_HEADER
 #define TEX_HISTOGRAM_HEADER
 
-#include <vector>
 #include <string>
+#include <vector>
 
 /**
-  * Class representing a histogram with a fixed number of bins
-  * optimized to calculate approximate permilles.
-  */
+ * Class representing a histogram with a fixed number of bins
+ * optimized to calculate approximate permilles.
+ */
 class Histogram {
-    private:
-        std::vector<unsigned int> bins;
-        float min;
-        float max;
-        int num_values;
+private:
+  std::vector<unsigned int> bins;
+  float min;
+  float max;
+  int num_values;
 
-    public:
-        /** Constructs a histogram with num_bins bins which clamps values to [_min, _max]. */
-        Histogram(float _min, float _max, std::size_t num_bins);
+public:
+  /** Constructs a histogram with num_bins bins which clamps values to [_min,
+   * _max]. */
+  Histogram(float _min, float _max, std::size_t num_bins);
 
-        /** Adds a value to the histogram. The value is clamped to [min, max]. */
-        void add_value(float value);
+  /** Adds a value to the histogram. The value is clamped to [min, max]. */
+  void add_value(float value);
 
-        /**
-          * Saves the histogram to a .csv file.
-          * @throws util::FileException
-          */
-        void save_to_file(std::string const & filename) const;
+  /**
+   * Saves the histogram to a .csv file.
+   * @throws util::FileException
+   */
+  void save_to_file(std::string const& filename) const;
 
-        /**
-          * Returns the approximate permille.
-          */
-        float get_approx_percentile(float percentile) const;
+  /**
+   * Returns the approximate permille.
+   */
+  float get_approx_percentile(float percentile) const;
 };
 
 #endif /* TEX_HISTOGRAM_HEADER */

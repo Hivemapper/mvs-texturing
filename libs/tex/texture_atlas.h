@@ -10,93 +10,89 @@
 #ifndef TEX_TEXTUREATLAS_HEADER
 #define TEX_TEXTUREATLAS_HEADER
 
-
 #include <vector>
 
-#include <util/exception.h>
 #include <math/vector.h>
-#include <mve/mesh.h>
 #include <mve/image.h>
+#include <mve/mesh.h>
+#include <util/exception.h>
 
-#include "tri.h"
-#include "texture_patch.h"
 #include "rectangular_bin.h"
+#include "texture_patch.h"
+#include "tri.h"
 
 /**
-  * Class representing a texture atlas.
-  */
+ * Class representing a texture atlas.
+ */
 class TextureAtlas {
-    public:
-        typedef std::shared_ptr<TextureAtlas> Ptr;
+public:
+  typedef std::shared_ptr<TextureAtlas> Ptr;
 
-        typedef std::vector<std::size_t> Faces;
-        typedef std::vector<std::size_t> TexcoordIds;
-        typedef std::vector<math::Vec2f> Texcoords;
+  typedef std::vector<std::size_t> Faces;
+  typedef std::vector<std::size_t> TexcoordIds;
+  typedef std::vector<math::Vec2f> Texcoords;
 
-    private:
-        unsigned int const size;
-        unsigned int const padding;
-        bool finalized;
+private:
+  unsigned int const size;
+  unsigned int const padding;
+  bool finalized;
 
-        Faces faces;
-        Texcoords texcoords;
-        TexcoordIds texcoord_ids;
+  Faces faces;
+  Texcoords texcoords;
+  TexcoordIds texcoord_ids;
 
-        mve::ByteImage::Ptr image;
-        mve::ByteImage::Ptr validity_mask;
+  mve::ByteImage::Ptr image;
+  mve::ByteImage::Ptr validity_mask;
 
-        RectangularBin::Ptr bin;
+  RectangularBin::Ptr bin;
 
-        void apply_edge_padding(void);
-        void merge_texcoords(void);
+  void apply_edge_padding(void);
+  void merge_texcoords(void);
 
-    public:
-        TextureAtlas(unsigned int size);
+public:
+  TextureAtlas(unsigned int size);
 
-        static TextureAtlas::Ptr create(unsigned int size);
+  static TextureAtlas::Ptr create(unsigned int size);
 
-        Faces const & get_faces(void) const;
-        TexcoordIds const & get_texcoord_ids(void) const;
-        Texcoords const & get_texcoords(void) const;
-        mve::ByteImage::ConstPtr get_image(void) const;
+  Faces const& get_faces(void) const;
+  TexcoordIds const& get_texcoord_ids(void) const;
+  Texcoords const& get_texcoords(void) const;
+  mve::ByteImage::ConstPtr get_image(void) const;
 
-        bool insert(TexturePatch::ConstPtr texture_patch);
+  bool insert(TexturePatch::ConstPtr texture_patch);
 
-        void finalize(void);
+  void finalize(void);
 };
 
-inline uint compute_local_padding(uint base_width, uint base_height, uint max_padding) {
-    uint size = std::max(base_width, base_height);
-    uint local_padding = std::min(std::max(2u, size / 16u), max_padding);
-    return local_padding;
+inline uint
+compute_local_padding(uint base_width, uint base_height, uint max_padding) {
+  uint size = std::max(base_width, base_height);
+  uint local_padding = std::min(std::max(2u, size / 16u), max_padding);
+  return local_padding;
 }
 
-inline TextureAtlas::Ptr
-TextureAtlas::create(unsigned int size) {
-    return Ptr(new TextureAtlas(size));
+inline TextureAtlas::Ptr TextureAtlas::create(unsigned int size) {
+  return Ptr(new TextureAtlas(size));
 }
 
-inline TextureAtlas::Faces const &
-TextureAtlas::get_faces(void) const {
-    return faces;
+inline TextureAtlas::Faces const& TextureAtlas::get_faces(void) const {
+  return faces;
 }
 
-inline TextureAtlas::TexcoordIds const &
-TextureAtlas::get_texcoord_ids(void) const {
-    return texcoord_ids;
+inline TextureAtlas::TexcoordIds const& TextureAtlas::get_texcoord_ids(
+    void) const {
+  return texcoord_ids;
 }
 
-inline TextureAtlas::Texcoords const &
-TextureAtlas::get_texcoords(void) const {
-    return texcoords;
+inline TextureAtlas::Texcoords const& TextureAtlas::get_texcoords(void) const {
+  return texcoords;
 }
 
-inline mve::ByteImage::ConstPtr
-TextureAtlas::get_image(void) const {
-    if (!finalized) {
-        throw util::Exception("Texture atlas not finalized");
-    }
-    return image;
+inline mve::ByteImage::ConstPtr TextureAtlas::get_image(void) const {
+  if (!finalized) {
+    throw util::Exception("Texture atlas not finalized");
+  }
+  return image;
 }
 
 #endif /* TEX_TEXTUREATLAS_HEADER */
