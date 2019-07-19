@@ -16,37 +16,39 @@
 #include "rect.h"
 
 /**
-  * Implementation of the binpacking algorithm GUILLUTINE from
-  * <a href="http://clb.demon.fi/files/RectangleBinPack.pdf">
-  * A Thousand Ways to Pack the Bin -
-  * A Practical Approach to Two-Dimensional Rectangle Bin Packing
-  * </a>
-  */
+ * Implementation of the binpacking algorithm GUILLUTINE from
+ * <a href="http://clb.demon.fi/files/RectangleBinPack.pdf">
+ * A Thousand Ways to Pack the Bin -
+ * A Practical Approach to Two-Dimensional Rectangle Bin Packing
+ * </a>
+ */
 class RectangularBin {
-    public:
-        typedef std::shared_ptr<RectangularBin> Ptr;
+public:
+  typedef std::shared_ptr<RectangularBin> Ptr;
 
-    private:
-        unsigned int width;
-        unsigned int height;
-        std::list<Rect<int> > rects;
+private:
+  unsigned int width;
+  unsigned int height;
+  std::list<Rect<int>> rects;
 
-    public:
-        /**
-          * Initializes the rectangular binpacking algorithm to fill a rectangle of the given size.
-          */
-        RectangularBin(unsigned int width, unsigned int height);
+public:
+  /**
+   * Initializes the rectangular binpacking algorithm to fill a rectangle of the
+   * given size.
+   */
+  RectangularBin(unsigned int width, unsigned int height);
 
-        static RectangularBin::Ptr create(unsigned int width, unsigned int height);
+  static RectangularBin::Ptr create(unsigned int width, unsigned int height);
 
-        /** Returns true and changes the position of the given rect if it fits into the bin. */
-        bool insert(Rect<int> * rect);
+  /** Returns true and changes the position of the given rect if it fits into
+   * the bin. */
+  bool insert(Rect<int>* rect);
 };
 
-inline RectangularBin::Ptr
-RectangularBin::create(unsigned int width, unsigned int height)
-{
-    return Ptr(new RectangularBin(width, height));
+inline RectangularBin::Ptr RectangularBin::create(
+    unsigned int width,
+    unsigned int height) {
+  return Ptr(new RectangularBin(width, height));
 }
 
 #endif /* TEX_RECTANGULARBIN_HEADER */

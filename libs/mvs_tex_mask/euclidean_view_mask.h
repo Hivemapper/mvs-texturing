@@ -1,32 +1,35 @@
 #pragma once
 
-#include <vector>
+#include <Eigen/Geometry>
 #include <map>
 #include <set>
 #include <utility>
-#include <Eigen/Geometry>
+#include <vector>
 
 namespace MvsTexturing {
 
 // typedef std::pair<uint16_t, uint16_t> FrameRange;
 class FrameRange {
- public:
+public:
   uint16_t first;
   uint16_t second;
-  FrameRange(uint16_t f, uint16_t s) : first(f), second(s) {}
-  bool operator<(const FrameRange& r) const {return second < r.first;}
+  FrameRange(uint16_t f, uint16_t s) : first(f), second(s) {
+  }
+  bool operator<(const FrameRange& r) const {
+    return second < r.first;
+  }
 };
 
 bool rangesContain(const std::set<FrameRange>& ranges, uint16_t i);
 void insertRange(std::set<FrameRange>& ranges, const FrameRange& ij);
 
-
 class EuclideanViewMask {
- public:
-  EuclideanViewMask(const Eigen::Matrix<double, 3, 1>& vmin,
-                    const Eigen::Matrix<double, 3, 3>& coord_transform,
-                    int nx,
-                    int ny);
+public:
+  EuclideanViewMask(
+      const Eigen::Matrix<double, 3, 1>& vmin,
+      const Eigen::Matrix<double, 3, 3>& coord_transform,
+      int nx,
+      int ny);
 
   bool isValidXy(int x, int y) const;
   std::vector<int> getVoxelIndex(const Eigen::Matrix<double, 3, 1>& v) const;
@@ -39,22 +42,26 @@ class EuclideanViewMask {
 
   void insert(const Eigen::Matrix<double, 3, 1>& v, uint16_t i);
   void insert(const Eigen::Matrix<double, 3, 1>& v, FrameRange range);
-  void insert(const Eigen::Matrix<double, 3, 1>& v, const std::set<FrameRange>& ranges);
+  void insert(
+      const Eigen::Matrix<double, 3, 1>& v,
+      const std::set<FrameRange>& ranges);
 
   void dilate(int iterations);
 
-  void getTriangleVoxels(const std::vector<Eigen::Matrix<double, 3, 1>>& vertices,
-                         std::vector<std::vector<int>>& voxels) const;
+  void getTriangleVoxels(
+      const std::vector<Eigen::Matrix<double, 3, 1>>& vertices,
+      std::vector<std::vector<int>>& voxels) const;
 
   int countCells() const;
 
-
-  void convertToPoints(std::vector<Eigen::Matrix<double, 3, 1>>& points, int cell_subdivisions = 0) const;
+  void convertToPoints(
+      std::vector<Eigen::Matrix<double, 3, 1>>& points,
+      int cell_subdivisions = 0) const;
 
   Eigen::Matrix<double, 3, 1> getCellSize() const;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
- private:
+private:
   Eigen::Matrix<double, 3, 1> vmin;
   Eigen::Matrix<double, 3, 3> coord_transform;
 

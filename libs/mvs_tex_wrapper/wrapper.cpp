@@ -354,7 +354,7 @@ void textureMesh(
   }
 
   if (do_texture_atlas) {  // do this--otherwise skip to cleanup and exit
-// Now loop, generating+saving subindexed meshes and atlas
+    // Now loop, generating+saving subindexed meshes and atlas
     #pragma omp parallel for schedule(dynamic)
     for (std::size_t vi = 0; vi < sub_vert_masks.size(); ++vi) {
       std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi + 1

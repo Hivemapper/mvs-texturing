@@ -7,40 +7,39 @@
  * of the BSD 3-Clause license. See the LICENSE.txt file for details.
  */
 
-#include <fstream>
-#include <cstring>
 #include <cerrno>
+#include <cstring>
+#include <fstream>
 
+#include <mve/image_io.h>
 #include <util/exception.h>
 #include <util/file_system.h>
-#include <mve/image_io.h>
 
 #include "material_lib.h"
 
-void
-MaterialLib::save_to_files(std::string const & prefix) const {
-    std::string filename = prefix + ".mtl";
-    std::ofstream out(filename.c_str());
-    if (!out.good())
-        throw util::FileException(filename, std::strerror(errno));
+void MaterialLib::save_to_files(std::string const& prefix) const {
+  std::string filename = prefix + ".mtl";
+  std::ofstream out(filename.c_str());
+  if (!out.good())
+    throw util::FileException(filename, std::strerror(errno));
 
-    std::string const name = util::fs::basename(prefix);
+  std::string const name = util::fs::basename(prefix);
 
-    for (Material const & material : *this) {
-        std::string diffuse_map_postfix = "_" + material.name + "_map_Kd.jpg";
-        out << "newmtl " << material.name << '\n'
-            << "Ka 1.000000 1.000000 1.000000" << '\n'
-            << "Kd 1.000000 1.000000 1.000000" << '\n'
-            << "Ks 0.000000 0.000000 0.000000" << '\n'
-            << "Tr 0.000000" << '\n' // *Tr*ansparancy vs. *d*issolve: Tr = 1.0 - d
-            << "illum 1" << '\n'
-            << "Ns 1.000000" << '\n'
-            << "map_Kd " << name + diffuse_map_postfix << std::endl;
-    }
-    out.close();
+  for (Material const& material : *this) {
+    std::string diffuse_map_postfix = "_" + material.name + "_map_Kd.jpg";
+    out << "newmtl " << material.name << '\n'
+        << "Ka 1.000000 1.000000 1.000000" << '\n'
+        << "Kd 1.000000 1.000000 1.000000" << '\n'
+        << "Ks 0.000000 0.000000 0.000000" << '\n'
+        << "Tr 0.000000" << '\n'  // *Tr*ansparancy vs. *d*issolve: Tr = 1.0 - d
+        << "illum 1" << '\n'
+        << "Ns 1.000000" << '\n'
+        << "map_Kd " << name + diffuse_map_postfix << std::endl;
+  }
+  out.close();
 
-    for (Material const & material : *this) {
-        std::string filename = prefix + "_" + material.name + "_map_Kd.jpg";
-        mve::image::save_jpg_file(material.diffuse_map, filename, 80);
-    }
+  for (Material const& material : *this) {
+    std::string filename = prefix + "_" + material.name + "_map_Kd.jpg";
+    mve::image::save_jpg_file(material.diffuse_map, filename, 80);
+  }
 }
