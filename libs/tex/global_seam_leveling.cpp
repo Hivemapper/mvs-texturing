@@ -300,7 +300,7 @@ void global_seam_leveling(
 
   util::WallTimer timer;
   std::cout << "\tCalculating adjustments:" << std::endl;
-#pragma omp parallel for
+  #pragma omp parallel for
   for (std::size_t channel = 0; channel < 3; ++channel) {
     /* Prepare solver. */
     Eigen::ConjugateGradient<SpMat, Eigen::Lower> cg;
@@ -323,12 +323,12 @@ void global_seam_leveling(
      * with minimal adjustments. */
     x = x.array() - x.mean();
 
-#pragma omp critical
+    #pragma omp critical
     std::cout << "\t\tColor channel " << channel << ": CG took "
               << cg.iterations() << " iterations. Residual is " << cg.error()
               << std::endl;
 
-#pragma omp critical
+    #pragma omp critical
     for (std::size_t i = 0; i < num_vertices; ++i) {
       for (std::size_t j = 0; j < labels[i].size(); ++j) {
         std::size_t label = labels[i][j];
@@ -343,7 +343,7 @@ void global_seam_leveling(
 
   ProgressCounter texture_patch_counter(
       "\tAdjusting texture patches", texture_patches->size());
-#pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(dynamic)
   for (std::size_t i = 0; i < texture_patches->size(); ++i) {
     texture_patch_counter.progress<SIMPLE>();
 

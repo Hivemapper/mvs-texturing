@@ -122,7 +122,7 @@ void from_images_and_camera_files(
   }
 
   ProgressCounter view_counter("\tLoading", files.size() / 2);
-#pragma omp parallel for
+  #pragma omp parallel for
   for (std::size_t i = 0; i < files.size(); i += 2) {
     view_counter.progress<SIMPLE>();
     const std::string cam_file = files[i];
@@ -140,7 +140,7 @@ void from_images_and_camera_files(
     util::Tokenizer tok_ext, tok_int;
     tok_ext.split(cam_ext_str);
     tok_int.split(cam_int_str);
-#pragma omp critical
+    #pragma omp critical
     if (tok_ext.size() != 12 || tok_int.size() < 1) {
       std::cerr << "Invalid CAM file: " << util::fs::basename(cam_file)
                 << std::endl;
@@ -182,7 +182,7 @@ void from_images_and_camera_files(
       mve::image::save_jpg_file(image, image_file, 80);
     }
 
-#pragma omp critical
+    #pragma omp critical
     texture_views->push_back(TextureView(i / 2, cam_info, image_file));
 
     view_counter.inc();
@@ -198,7 +198,7 @@ void from_nvm_scene(
   mve::Bundle::Cameras& cameras = bundle->get_cameras();
 
   ProgressCounter view_counter("\tLoading", cameras.size());
-#pragma omp parallel for
+  #pragma omp parallel for
   for (std::size_t i = 0; i < cameras.size(); ++i) {
     view_counter.progress<SIMPLE>();
     mve::CameraInfo& mve_cam = cameras[i];
@@ -218,7 +218,7 @@ void from_nvm_scene(
             util::fs::basename(nvm_cam.filename), "jpg"));
     mve::image::save_jpg_file(image, image_file, 80);
 
-#pragma omp critical
+    #pragma omp critical
     texture_views->push_back(TextureView(i, mve_cam, image_file));
 
     view_counter.inc();

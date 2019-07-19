@@ -39,8 +39,8 @@ T clamp(T const& v, T const& lo, T const& hi) {
 
 void merge_vertex_projection_infos(
     std::vector<std::vector<VertexProjectionInfo>>* vertex_projection_infos) {
-/* Merge vertex infos within the same texture patch. */
-#pragma omp parallel for
+  /* Merge vertex infos within the same texture patch. */
+  #pragma omp parallel for
   for (std::size_t i = 0; i < vertex_projection_infos->size(); ++i) {
     std::vector<VertexProjectionInfo>& infos = vertex_projection_infos->at(i);
 
@@ -298,7 +298,7 @@ bool fill_hole(
     std::size_t vi0 = border[j];
     std::size_t vi1 = border[(j + 1) % border.size()];
     std::vector<VertexProjectionInfo> vpi0, vpi1;
-#pragma omp critical(vpis)
+    #pragma omp critical(vpis)
     {
       vpi0 = vertex_projection_infos->at(vi0);
       vpi1 = vertex_projection_infos->at(vi1);
@@ -467,7 +467,7 @@ bool fill_hole(
   TexturePatch::Ptr texture_patch =
       TexturePatch::create(0, hole, texcoords, image);
   std::size_t texture_patch_id;
-#pragma omp critical
+  #pragma omp critical
   {
     texture_patches->push_back(texture_patch);
     texture_patch_id = texture_patches->size() - 1;
@@ -484,7 +484,7 @@ bool fill_hole(
       }
     }
     VertexProjectionInfo info = {texture_patch_id, projections[j], faces};
-#pragma omp critical(vpis)
+    #pragma omp critical(vpis)
     vertex_projection_infos->at(vertex_id).push_back(info);
   }
 
@@ -508,7 +508,7 @@ void generate_texture_patches(
   std::size_t num_patches = 0;
 
   std::cout << "\tRunning... " << std::flush;
-#pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(dynamic)
   for (std::size_t i = 0; i < texture_views->size(); ++i) {
     // std::cout << i << std::endl;
     std::vector<std::vector<std::size_t>> subgraphs;
@@ -556,7 +556,7 @@ void generate_texture_patches(
     for (; it != candidates.end(); ++it) {
       std::size_t texture_patch_id;
 
-#pragma omp critical
+      #pragma omp critical
       {
         texture_patches->push_back(it->texture_patch);
         texture_patch_id = num_patches++;
@@ -574,7 +574,7 @@ void generate_texture_patches(
 
           VertexProjectionInfo info = {texture_patch_id, projection, {face_id}};
 
-#pragma omp critical
+          #pragma omp critical
           vertex_projection_infos->at(vertex_id).push_back(info);
         }
       }

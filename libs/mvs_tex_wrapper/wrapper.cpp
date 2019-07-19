@@ -234,7 +234,7 @@ void textureMesh(
       ProgressCounter texture_patch_counter(
           "Calculating validity masks for texture patches",
           texture_patches.size());
-#pragma omp parallel for schedule(dynamic)
+      #pragma omp parallel for schedule(dynamic)
       for (std::size_t i = 0; i < texture_patches.size(); ++i) {
         texture_patch_counter.progress<SIMPLE>();
         TexturePatch::Ptr texture_patch = texture_patches[i];
@@ -258,7 +258,7 @@ void textureMesh(
         // This method creates a synthetic color image where each rgb color
         // represents a different class
         std::cout << "Building object class texture image:" << std::endl;
-#pragma omp parallel for schedule(dynamic)
+        #pragma omp parallel for schedule(dynamic)
         for (std::size_t i = 0; i < texture_object_class_patches.size(); ++i) {
           TexturePatch::Ptr texture_object_class_patch =
               texture_object_class_patches[i];
@@ -355,7 +355,7 @@ void textureMesh(
 
   if (do_texture_atlas) {  // do this--otherwise skip to cleanup and exit
     // Now loop, generating+saving subindexed meshes and atlas
-#pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic)
     for (std::size_t vi = 0; vi < sub_vert_masks.size(); ++vi) {
       std::cout << "\nFinalizing Sub-Model " << sub_names[vi] << " - " << vi + 1
                 << " of " << sub_vert_masks.size() << std::endl;

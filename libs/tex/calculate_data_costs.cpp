@@ -165,12 +165,12 @@ void calculate_face_projection_infos(
   std::cout << "done. (Took: " << timer.get_elapsed() << " ms)" << std::endl;
   FaceProjectionInfos invisible_faces(face_projection_infos->size());
   ProgressCounter view_counter("\tCalculating face qualities", num_views);
-#pragma omp parallel
+  #pragma omp parallel
   {
     std::vector<std::pair<std::size_t, FaceProjectionInfo>>
         projected_face_view_infos;
 
-#pragma omp for schedule(dynamic)
+    #pragma omp for schedule(dynamic)
     for (std::uint16_t j = 0; j < static_cast<std::uint16_t>(num_views); ++j) {
       view_counter.progress<SIMPLE>();
 
@@ -300,7 +300,7 @@ void calculate_face_projection_infos(
     // std::sort(projected_face_view_infos.begin(),
     // projected_face_view_infos.end());
 
-#pragma omp critical
+    #pragma omp critical
     {
       for (std::size_t i = projected_face_view_infos.size(); 0 < i; --i) {
         std::size_t face_id = projected_face_view_infos[i - 1].first;
@@ -344,7 +344,7 @@ void postprocess_face_infos(
   ProgressCounter face_counter(
       "\tPostprocessing face infos", face_projection_infos->size());
 
-#pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(dynamic)
   for (std::size_t i = 0; i < face_projection_infos->size(); ++i) {
     face_counter.progress<SIMPLE>();
     std::vector<FaceProjectionInfo>& infos = face_projection_infos->at(i);
