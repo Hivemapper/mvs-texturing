@@ -10,8 +10,7 @@ namespace MvsTexturing {
 
 struct TextureSettings {
   bool do_use_gmi_term = false;  // GMI vs area
-  bool do_gauss_clamping =
-      true;  // one or other true, not both. Photmetric consistency type
+  bool do_gauss_clamping = true; // one or other true, not both. Photometric consistency type
   bool do_gauss_damping = false;
   bool do_geometric_visibility_test = false;
   bool do_gamma_tone_mapping = true;
