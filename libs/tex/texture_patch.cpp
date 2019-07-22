@@ -184,10 +184,15 @@ void TexturePatch::rescale(double ratio) {
   int old_height = get_height();
   int new_width = std::ceil(old_width * ratio);
   int new_height = std::ceil(old_height * ratio);
-  double width_mult = (new_width - texture_patch_border)
-                      / (double)(old_width - texture_patch_border);
-  double height_mult = (new_height - texture_patch_border)
-                       / (double)(old_height - texture_patch_border);
+  //  FIXME - bitweeder
+  //  It looks like the use of texture_patch_border got cargo-culted from
+  //  somewhere else; it seems to be an ad hoc correction applied in the
+  //  original source when working with the component triangles of a texture
+  //  patch, and not at all relevant to a scaling operation.
+//  double width_mult = (new_width - texture_patch_border)
+//                      / (double)(old_width - texture_patch_border);
+//  double height_mult = (new_height - texture_patch_border)
+//                       / (double)(old_height - texture_patch_border);
   // image = mve::image::rescale<float>(image,
   // mve::image::RescaleInterpolation::RESCALE_LINEAR, new_width, new_height);
   image = rescale_area(image, new_width, new_height);
@@ -207,9 +212,11 @@ void TexturePatch::rescale(double ratio) {
         new_width,
         new_height);
   }
-  for (math::Vec2f& coord : texcoords) {
-    coord[0] *= height_mult;
-    coord[1] *= width_mult;
+  for (auto&& coord : texcoords) {
+//    coord[0] *= height_mult;
+//    coord[1] *= width_mult;
+    coord[0] *= ratio;
+    coord[1] *= ratio;
   }
   assert(get_width() == validity_mask->width());
   assert(get_height() == validity_mask->height());

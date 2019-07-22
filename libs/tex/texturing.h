@@ -31,6 +31,7 @@ TEX_NAMESPACE_BEGIN
 
 using TextureViews = std::vector<TextureView>;
 using TexturePatches = std::vector<TexturePatch::Ptr>;
+using ConstTexturePatches = std::vector<TexturePatch::ConstPtr>;
 using TextureAtlases = std::vector<TextureAtlas::Ptr>;
 using Model = ObjModel;
 using Graph = UniGraph ;
@@ -127,17 +128,17 @@ void local_seam_leveling_n(
     TexturePatches* texture_object_class_patches = nullptr);
 
 void generate_texture_atlases(
-    TexturePatches* texture_patches,
-    Settings const& settings,
-    TextureAtlases* texture_atlases,
+    TexturePatches * orig_texture_patches,
+    Settings const & settings,
+    TextureAtlases * texture_atlases,
     const std::vector<math::Vec3f>& vertices,
     const std::vector<uint>& mesh_faces);
 
 void generate_capped_texture_atlas(
-    TexturePatches* orig_texture_patches,
-    Settings const& settings,
-    TextureAtlases* texture_atlases,
-    std::size_t atlas_size,
+    TexturePatches * orig_texture_patches,
+    Settings const & settings,
+    TextureAtlases * texture_atlases,
+    uint max_atlas_dim,
     const std::vector<math::Vec3f>& vertices,
     const std::vector<uint>& faces);
 

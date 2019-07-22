@@ -17,7 +17,7 @@
 #include "texture_atlas.h"
 
 TextureAtlas::TextureAtlas(unsigned int size)
-  : size(size), padding(std::min(8u, size >> 8)), finalized(false) {
+  : size(size), padding(compute_base_padding(size)), finalized(false) {
   bin = RectangularBin::create(size, size);
   image = mve::ByteImage::create(size, size, 3);
   validity_mask = mve::ByteImage::create(size, size, 1);
@@ -55,7 +55,7 @@ void copy_into(
 typedef std::vector<std::pair<int, int>> PixelVector;
 typedef std::set<std::pair<int, int>> PixelSet;
 
-bool TextureAtlas::insert(TexturePatch::ConstPtr texture_patch) {
+uint TextureAtlas::insert(TexturePatch::ConstPtr texture_patch) {
   if (finalized) {
     throw util::Exception(
         "No insertion possible, TextureAtlas already finalized");
@@ -71,15 +71,22 @@ bool TextureAtlas::insert(TexturePatch::ConstPtr texture_patch) {
   int const height = texture_patch->get_height() + 2 * local_padding;
   Rect<int> rect(0, 0, width, height);
   if (!bin->insert(&rect))
-    return false;
+    return 0;
 
   /* Update texture atlas and its validity mask. */
   mve::ByteImage::Ptr patch_image =
       mve::image::float_to_byte_image(texture_patch->get_image(), 0.0f, 1.0f);
 
-  copy_into(patch_image, rect.min_x, rect.min_y, image, local_padding);
+  copy_into(
+      patch_image,
+      rect.min_x,
+      rect.min_y,
+      image,
+      local_padding);
+
   mve::ByteImage::ConstPtr patch_validity_mask =
       texture_patch->get_validity_mask();
+
   copy_into(
       patch_validity_mask,
       rect.min_x,
@@ -109,7 +116,7 @@ bool TextureAtlas::insert(TexturePatch::ConstPtr texture_patch) {
       texcoords.push_back(texcoord);
     }
   }
-  return true;
+  return width * height;
 }
 
 void TextureAtlas::apply_edge_padding(void) {

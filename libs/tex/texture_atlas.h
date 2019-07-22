@@ -59,15 +59,44 @@ public:
   Texcoords const& get_texcoords(void) const;
   mve::ByteImage::ConstPtr get_image(void) const;
 
-  bool insert(TexturePatch::ConstPtr texture_patch);
+  uint insert(TexturePatch::ConstPtr texture_patch);
 
   void finalize(void);
 };
 
-inline uint
-compute_local_padding(uint base_width, uint base_height, uint max_padding) {
+/**
+  @brief Calculate the default padding around each chart in the atlas.
+  @details The calculated value is based strctly on the edge length of the
+  atlas. The actual padding used for a given chart is uses this as a starting
+  point, but may vary substantially depending on the characteristics of the
+  chart and any usage requirements.
+*/
+inline uint compute_base_padding(uint edge_length) {
+  return std::min(12u, edge_length >> 8);
+}
+
+/**
+  @brief Return the calculated texel padding required by a give chart.
+  @details A given chart is guaranteed to have no fewer than 2 texels and
+  no more than max_padding texels of padding surrounding it on the atlas page.
+  Within this range, the padding is 1/16 of the larger of the bounding rect’s
+  width and height. As implied, the amount of padding is constant in both
+  height and width.
+ 
+  @param base_width is the width of the chart’s bounding rect.
+  @param base_height is the height of the chart’s bounding rect.
+  @param max_padding is the maximum value that may be returned.
+ 
+  @return a positive integer padding value in [2, `max_padding`]
+*/
+inline uint compute_local_padding(
+    uint base_width,
+    uint base_height,
+    uint edge_length) {
+  uint max_padding = compute_base_padding(edge_length);
   uint size = std::max(base_width, base_height);
-  uint local_padding = std::min(std::max(2u, size / 16u), max_padding);
+  uint local_padding = std::min(std::max(2u, size >> 4), max_padding);
+
   return local_padding;
 }
 
