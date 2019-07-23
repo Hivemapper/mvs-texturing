@@ -324,8 +324,8 @@ void TextureView::export_triangle(
   Rect<float> aabb = tri.get_aabb();
   const int width = ceil(aabb.width());
   const int height = ceil(aabb.height());
-  const int left = floor(aabb.min_x);
-  const int top = floor(aabb.max_y);
+  const int left = std::floor(aabb.min_x);
+  const int top = std::floor(aabb.max_y);
 
   assert(width > 0 && height > 0);
   mve::image::save_jpg_file(

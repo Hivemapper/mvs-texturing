@@ -75,7 +75,7 @@ bool EuclideanViewMask::isValidXy(int x, int y) const {
 bool EuclideanViewMask::isValidVector(
     const Eigen::Matrix<double, 3, 1>& v) const {
   Eigen::Matrix<double, 3, 1> vi = coord_transform * (v - vmin);
-  return isValidXy(floor(vi[0]), floor(vi[1]));
+  return isValidXy(std::floor(vi[0]), std::floor(vi[1]));
 }
 
 /**
@@ -86,9 +86,9 @@ vector<int> EuclideanViewMask::getVoxelIndex(
     const Eigen::Matrix<double, 3, 1>& v) const {
   Eigen::Matrix<double, 3, 1> vi = coord_transform * (v - vmin);
   vector<int> xyz(3);
-  xyz[0] = floor(vi[0]);
-  xyz[1] = floor(vi[1]);
-  xyz[2] = floor(vi[2]);
+  xyz[0] = std::floor(vi[0]);
+  xyz[1] = std::floor(vi[1]);
+  xyz[2] = std::floor(vi[2]);
   if (!isValidXy(xyz[0], xyz[1])) {
     throw std::invalid_argument(
         "Warning: location " + std::to_string(v[0]) + ", "
