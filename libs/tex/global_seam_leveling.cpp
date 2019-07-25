@@ -24,7 +24,7 @@ TEX_NAMESPACE_BEGIN
 typedef Eigen::SparseMatrix<float> SpMat;
 
 math::Vec3f sample_edge(
-    TexturePatch::ConstPtr texture_patch,
+    TexturePatch::Ptr texture_patch,
     math::Vec2f p1,
     math::Vec2f p2) {
   math::Vec2f p12 = p2 - p1;

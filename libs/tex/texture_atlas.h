@@ -59,7 +59,7 @@ public:
   Texcoords const& get_texcoords(void) const;
   mve::ByteImage::ConstPtr get_image(void) const;
 
-  uint insert(TexturePatch::ConstPtr texture_patch);
+  uint insert(TexturePatch::Ptr texture_patch);
 
   void finalize(void);
 };

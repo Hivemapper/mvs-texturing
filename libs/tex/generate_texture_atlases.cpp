@@ -58,8 +58,8 @@ struct AtlasPageEsts {
   uint max_chart_height{};
 };
 
-AtlasPageEsts compute_page_estimates(ConstTexturePatches const& texture_patches);
-AtlasPageEsts compute_page_estimates(ConstTexturePatches const& texture_patches) {
+AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches);
+AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches) {
   AtlasPageEsts nrv = {MAX_TEXTURE_SIZE, 0, 0, 0};
 
   while (true) {
@@ -135,17 +135,19 @@ void generate_capped_texture_atlas(
     uint max_atlas_dim,
     const std::vector<math::Vec3f>& vertices,
     const std::vector<uint>& faces) {
-  ConstTexturePatches texture_patches {};
+  std::cout << "generate_capped_texture_atlas beginning" <<std::endl;
+
+  TexturePatches texture_patches {};
 
   //  FIXME - bitweeder
   //  This assumes a specific gamma correction which may be inappropriate for
   //  the source images.
   std::transform(orig_texture_patches->begin(), orig_texture_patches->end(),
-      texture_patches.begin(), [tm=settings.tone_mapping](auto&& patch) {
+      std::back_inserter(texture_patches), [tm=settings.tone_mapping](auto& patch) {
         if (tm != TONE_MAPPING_NONE) {
           mve::image::gamma_correct(patch->get_image(), 1.0f / 2.2f);
         }
-        
+
         return patch;
       });
 
@@ -189,9 +191,19 @@ void generate_capped_texture_atlas(
     bool atlas_complete = true;
     uint actual_occupied_area = 0;
 
+    std::cout << "atlas_page_ests: {" << atlas_page_ests.edge_length
+        << ", " << atlas_page_ests.max_chart_width
+        << ", " << atlas_page_ests.max_chart_height
+        << ", " << atlas_page_ests.occupied_area << std::endl;
+
+    std::cout << "atlas_size: " << atlas_size << std::endl;
+
+    ++iterations;
+
     for (std::size_t i = 0; i < texture_patches.size(); ++i) {
-      ++iterations;
-      
+      std::cout << "Attempting patch "
+                << i << " of " << texture_patches.size() << std::endl;
+
       uint occupied_area = 0;
       
       if (scaling == 1.0) {
@@ -246,17 +258,19 @@ void generate_texture_atlases(
     TextureAtlases* texture_atlases,
     const std::vector<math::Vec3f>& vertices,
     const std::vector<uint>& faces) {
-  ConstTexturePatches texture_patches {};
+  std::cout << "generate_texture_atlases beginning" <<std::endl;
+
+  TexturePatches texture_patches {};
 
   //  FIXME - bitweeder
   //  This assumes a specific gamma correction which may be inappropriate for
   //  the source images.
   std::transform(orig_texture_patches->begin(), orig_texture_patches->end(),
-      texture_patches.begin(), [tm=settings.tone_mapping](auto&& patch) {
+      std::back_inserter(texture_patches), [tm=settings.tone_mapping](auto& patch) {
         if (tm != TONE_MAPPING_NONE) {
           mve::image::gamma_correct(patch->get_image(), 1.0f / 2.2f);
         }
-        
+
         return patch;
       });
 
@@ -275,7 +289,7 @@ void generate_texture_atlases(
 
   auto const total_num_patches = texture_patches.size();
   auto remaining_patches = texture_patches.size();
-
+  
   std::ofstream tty("/dev/tty", std::ios_base::out);
 
   #pragma omp parallel

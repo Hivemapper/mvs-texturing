@@ -55,7 +55,7 @@ void copy_into(
 typedef std::vector<std::pair<int, int>> PixelVector;
 typedef std::set<std::pair<int, int>> PixelSet;
 
-uint TextureAtlas::insert(TexturePatch::ConstPtr texture_patch) {
+uint TextureAtlas::insert(TexturePatch::Ptr texture_patch) {
   if (finalized) {
     throw util::Exception(
         "No insertion possible, TextureAtlas already finalized");
@@ -69,7 +69,16 @@ uint TextureAtlas::insert(TexturePatch::ConstPtr texture_patch) {
 
   int const width = texture_patch->get_width() + 2 * local_padding;
   int const height = texture_patch->get_height() + 2 * local_padding;
+
+  std::cout << "base_padding: " << padding
+      << ", local_padding: " << local_padding
+      << ", width: " << width
+      << ", tpwidth(): " << texture_patch->get_width()
+      << ", height: " << height
+      << ", tpheight(): " << texture_patch->get_height() << std::endl;
+
   Rect<int> rect(0, 0, width, height);
+
   if (!bin->insert(&rect))
     return 0;
 

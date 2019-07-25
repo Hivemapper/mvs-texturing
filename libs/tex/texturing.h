@@ -31,7 +31,7 @@ TEX_NAMESPACE_BEGIN
 
 using TextureViews = std::vector<TextureView>;
 using TexturePatches = std::vector<TexturePatch::Ptr>;
-using ConstTexturePatches = std::vector<TexturePatch::ConstPtr>;
+//using ConstTexturePatches = std::vector<TexturePatch::Ptr>;
 using TextureAtlases = std::vector<TextureAtlas::Ptr>;
 using Model = ObjModel;
 using Graph = UniGraph ;
