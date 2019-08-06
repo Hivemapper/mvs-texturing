@@ -46,7 +46,10 @@ TEX_NAMESPACE_BEGIN
  
   @param texture_patches is a vector of charts to place in the atlas page
  
-  @return the edge length of the texture square, in texels
+  @return a set of extimates includes expected edge length of the texture, in
+  texels, rough occupied area in square texels (summation of bounding rects +
+  padding), and the maximum width and maximum height of the texture chart
+  bounding rects.
 
   FIXME - bitweeder
   There is way too much inexplicable stuff going on here.
@@ -58,8 +61,12 @@ struct AtlasPageEsts {
   uint max_chart_height{};
 };
 
-AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches);
-AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches) {
+AtlasPageEsts compute_page_estimates(
+  TexturePatches const& texture_patches,
+    double scaling);
+
+AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches,
+    double scaling) {
   AtlasPageEsts nrv = {MAX_TEXTURE_SIZE, 0, 0, 0};
 
   while (true) {
@@ -77,8 +84,12 @@ AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches) {
     //  we’d ever need more than a 2-pixel border unless something has gone
     //  horribly wrong, so this aspect is even more confusing.
     for (auto const& texture_patch : texture_patches) {
-      auto const tpwidth = texture_patch->get_width();
-      auto const tpheight = texture_patch->get_height();
+      auto const tpwidth = static_cast<uint>(
+          static_cast<double>(texture_patch->get_width()) * scaling);
+
+      auto const tpheight = static_cast<uint>(
+          static_cast<double>(texture_patch->get_height()) * scaling);
+
       auto local_padding = compute_local_padding(tpwidth, tpheight, nrv.edge_length);
       uint width = tpwidth + 2 * local_padding;
       uint height = tpheight + 2 * local_padding;
@@ -98,7 +109,8 @@ AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches) {
     assert(nrv.max_chart_height <= MAX_TEXTURE_SIZE);
 
     //  FIXME - bitweeder
-    //  WTF is up with that last criterion?
+    //  WTF is up with that last criterion? Is it “smaller than twice the
+    //  square of twice the preferred texture size”?
     if (nrv.edge_length > PREF_TEXTURE_SIZE
      && nrv.max_chart_width < PREF_TEXTURE_SIZE
      && nrv.max_chart_height < PREF_TEXTURE_SIZE
@@ -128,22 +140,21 @@ AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches) {
   return nrv;
 }
 
-void generate_capped_texture_atlas(
+TexturePatches prepare_patches(
     TexturePatches* orig_texture_patches,
-    Settings const& settings,
-    TextureAtlases* texture_atlases,
-    uint max_atlas_dim,
-    const std::vector<math::Vec3f>& vertices,
-    const std::vector<uint>& faces) {
-  std::cout << "generate_capped_texture_atlas beginning" <<std::endl;
+    Settings const& settings);
+TexturePatches prepare_patches(
+    TexturePatches* orig_texture_patches,
+    Settings const& settings) {
+  TexturePatches nrv {};
 
-  TexturePatches texture_patches {};
+  nrv.reserve(orig_texture_patches->size());
 
   //  FIXME - bitweeder
   //  This assumes a specific gamma correction which may be inappropriate for
   //  the source images.
   std::transform(orig_texture_patches->begin(), orig_texture_patches->end(),
-      std::back_inserter(texture_patches), [tm=settings.tone_mapping](auto& patch) {
+      std::back_inserter(nrv), [tm=settings.tone_mapping](auto& patch) {
         if (tm != TONE_MAPPING_NONE) {
           mve::image::gamma_correct(patch->get_image(), 1.0f / 2.2f);
         }
@@ -160,10 +171,28 @@ void generate_capped_texture_atlas(
   //  This depends upon the size of the bounding rect, as opposed to the actual
   //  patch area. Furthermore, it’s a straight area sort, not even a longest
   //  dimension sort, much less something fancier.
-  std::sort(texture_patches.begin(), texture_patches.end(),
+  std::sort(nrv.begin(), nrv.end(),
       [](auto const& lhs, auto const& rhs) {
         return lhs->get_size() > rhs->get_size();
       });
+  
+  return nrv;
+}
+
+void generate_capped_texture_atlas(
+    TexturePatches* orig_texture_patches,
+    Settings const& settings,
+    TextureAtlases* texture_atlases,
+    uint max_atlas_dim,
+    const std::vector<math::Vec3f>& vertices,
+    const std::vector<uint>& faces) {
+  std::cout << "generate_capped_texture_atlas beginning" <<std::endl;
+
+//  std::cout << "max_atlas_dim: " << max_atlas_dim << std::endl;
+//  max_atlas_dim = 16 * 1024;
+//  std::cout << "max_atlas_dim: " << max_atlas_dim << std::endl;
+
+  auto texture_patches = prepare_patches(orig_texture_patches, settings);
 
   //  We start with full-size rendering, and scale downwards if the charts
   //  won’t fit on a single atlas page. The amount we scale depends on how
@@ -185,7 +214,7 @@ void generate_capped_texture_atlas(
     //  atlas charts after packing (in other words, square textures are
     //  assumed). Note that estimated_size is just a starting point; for
     //  various reasons, it may be completely off.
-    auto atlas_page_ests = compute_page_estimates(texture_patches);
+    auto atlas_page_ests = compute_page_estimates(texture_patches, scaling);
     auto atlas_size = (std::min(atlas_page_ests.edge_length, max_atlas_dim));
     auto texture_atlas = TextureAtlas::create(atlas_size);
     bool atlas_complete = true;
@@ -194,19 +223,26 @@ void generate_capped_texture_atlas(
     std::cout << "atlas_page_ests: {" << atlas_page_ests.edge_length
         << ", " << atlas_page_ests.max_chart_width
         << ", " << atlas_page_ests.max_chart_height
-        << ", " << atlas_page_ests.occupied_area << std::endl;
+        << ", " << atlas_page_ests.occupied_area
+        << "}, " << std::flush;
 
     std::cout << "atlas_size: " << atlas_size << std::endl;
 
     ++iterations;
 
-    for (std::size_t i = 0; i < texture_patches.size(); ++i) {
-      std::cout << "Attempting patch "
-                << i << " of " << texture_patches.size() << std::endl;
+    uint expected_occupied_area = 0;
+    std::size_t i = 0;
+    
+    for (; i < texture_patches.size(); ++i) {
+//      std::cout << "Attempting patch "
+//                << i << " of " << texture_patches.size() << std::endl;
 
       uint occupied_area = 0;
       
       if (scaling == 1.0) {
+        expected_occupied_area =
+            texture_patches[i]->get_width() * texture_patches[i]->get_height();
+
         occupied_area = texture_atlas->insert(texture_patches[i]);
       } else {
         //  Generate a deep copy of the original patch.
@@ -214,7 +250,7 @@ void generate_capped_texture_atlas(
 
         patch->rescale(scaling);
 
-        //  Attempt to insert the patch.
+        expected_occupied_area = patch->get_width() * patch->get_height();
         occupied_area = texture_atlas->insert(patch);
       }
 
@@ -229,8 +265,9 @@ void generate_capped_texture_atlas(
     if (atlas_complete) {
       //  FIXME - bitweeder
       //  Prettify this floating point value.
-      std::cout << "Completed atlas page with "
-                << scaling * 100.0 << "% scaling" << std::endl;
+      std::cout << "Completed atlas page with " << i << " patches at "
+                << scaling * 100.0 << "% scaling on iteration "
+                << iterations << std::endl;
 
       texture_atlas->finalize();
       texture_atlases->push_back(texture_atlas);
@@ -239,10 +276,34 @@ void generate_capped_texture_atlas(
       //  FIXME - bitweeder
       //  Prettify this floating point value.
       std::cout << "Unable to complete atlas page with "
-                << scaling * 100.0 << "% scaling. Adjusting." << std::endl;
+                << scaling * 100.0 << "% scaling (area: "
+                << actual_occupied_area << "/"
+                << atlas_page_ests.occupied_area << ", patches: " << i
+                << " of " << texture_patches.size() << ")"
+                << " on iteration " << iterations << std::endl;
 
-      scaling *= (static_cast<double>(actual_occupied_area)
-          / static_cast<double>(atlas_page_ests.occupied_area));
+      //  SEEME - bitweeder
+      //  Rather than base our scaling heuristic on the area occupied thus
+      //  far, we prefer to use the area that -would- have been occupied had
+      //  our last insertion completed successfully; this takes advantage of
+      //  the fact that we sorted our inputs by area in advance and is intended
+      //  to prevent over-minimization. It does, bowever, create the potential
+      //  for a death spiral in a pathological edge case; the fix would be to
+      //  “over-correct” after some number of failed iterations. Even with this
+      //  fix, however, it’s still possible to fail if our charts are shaped
+      //  awkwardly enough relative to the remaining binnable area in our
+      //  texture, which would necessitate an even more radical solution.
+      //  Finally, if the maximum allowable texture size is simply too small,
+      //  we’ll effectively fail no matter what we do.
+      if ((actual_occupied_area + expected_occupied_area)
+          < atlas_page_ests.occupied_area) {
+        scaling *= std::sqrt(
+            static_cast<double>(actual_occupied_area + expected_occupied_area)
+            / static_cast<double>(atlas_page_ests.occupied_area));
+      } else {
+        scaling *= std::sqrt((static_cast<double>(actual_occupied_area)
+            / static_cast<double>(atlas_page_ests.occupied_area)));
+      }
     }
     
     if ((scaling < 0.01) || (iterations >= 10)) {
@@ -260,60 +321,23 @@ void generate_texture_atlases(
     const std::vector<uint>& faces) {
   std::cout << "generate_texture_atlases beginning" <<std::endl;
 
-  TexturePatches texture_patches {};
-
-  //  FIXME - bitweeder
-  //  This assumes a specific gamma correction which may be inappropriate for
-  //  the source images.
-  std::transform(orig_texture_patches->begin(), orig_texture_patches->end(),
-      std::back_inserter(texture_patches), [tm=settings.tone_mapping](auto& patch) {
-        if (tm != TONE_MAPPING_NONE) {
-          mve::image::gamma_correct(patch->get_image(), 1.0f / 2.2f);
-        }
-
-        return patch;
-      });
-
-  orig_texture_patches->clear();
-
-  //  Improve the bin-packing algorithm efficiency by sorting texture patches
-  //  in descending order of size.
-  //
-  //  SEEME - bitweeder
-  //  This depends upon the size of the bounding rect, as opposed to the actual
-  //  patch area.
-  std::sort(texture_patches.begin(), texture_patches.end(),
-      [](auto const& lhs, auto const& rhs) {
-        return lhs->get_size() > rhs->get_size();
-      });
-
+  auto texture_patches = prepare_patches(orig_texture_patches, settings);
   auto const total_num_patches = texture_patches.size();
   auto remaining_patches = texture_patches.size();
   
-  std::ofstream tty("/dev/tty", std::ios_base::out);
-
   #pragma omp parallel
   {
     #pragma omp single
     {
       while (!texture_patches.empty()) {
-        auto atlas_page_ests = compute_page_estimates(texture_patches);
-
-        texture_atlases->push_back(TextureAtlas::create(atlas_page_ests.edge_length));
-
-        auto texture_atlas = texture_atlases->back();
+        auto atlas_page_ests = compute_page_estimates(texture_patches, 1.0);
+        auto texture_atlas = TextureAtlas::create(atlas_page_ests.edge_length);
 
         //  Try to insert each of the texture patches into the texture atlas.
         for (auto it = texture_patches.begin(); it != texture_patches.end();) {
           std::size_t done_patches = total_num_patches - remaining_patches;
           int percent =
               static_cast<float>(done_patches) / total_num_patches * 100.0f;
-
-          if (total_num_patches > 100
-              && done_patches % (total_num_patches / 100) == 0) {
-            tty << "\r\tWorking on atlas " << texture_atlases->size() << " "
-                << percent << "%... " << std::flush;
-          }
 
           if (texture_atlas->insert(*it)) {
             it = texture_patches.erase(it);
@@ -325,10 +349,8 @@ void generate_texture_atlases(
 
         #pragma omp task
         texture_atlas->finalize();
+        texture_atlases->push_back(texture_atlas);
       }
-
-      std::cout << "\r\tWorking on atlas " << texture_atlases->size()
-                << " 100%... done." << std::endl;
 
       util::WallTimer timer {};
       std::cout << "\tFinalizing texture atlases... " << std::flush;

@@ -17,7 +17,7 @@
 #include "texture_atlas.h"
 
 TextureAtlas::TextureAtlas(unsigned int size)
-  : size(size), padding(compute_base_padding(size)), finalized(false) {
+  : size {size} {
   bin = RectangularBin::create(size, size);
   image = mve::ByteImage::create(size, size, 3);
   validity_mask = mve::ByteImage::create(size, size, 1);
@@ -65,22 +65,26 @@ uint TextureAtlas::insert(TexturePatch::Ptr texture_patch) {
   assert(validity_mask != NULL);
 
   uint local_padding = compute_local_padding(
-      texture_patch->get_width(), texture_patch->get_height(), padding);
+      texture_patch->get_width(), texture_patch->get_height(), size);
 
-  int const width = texture_patch->get_width() + 2 * local_padding;
-  int const height = texture_patch->get_height() + 2 * local_padding;
+  uint const width = texture_patch->get_width() + 2 * local_padding;
+  uint const height = texture_patch->get_height() + 2 * local_padding;
 
-  std::cout << "base_padding: " << padding
-      << ", local_padding: " << local_padding
-      << ", width: " << width
-      << ", tpwidth(): " << texture_patch->get_width()
-      << ", height: " << height
-      << ", tpheight(): " << texture_patch->get_height() << std::endl;
+//  std::cout << "padding: " << compute_base_padding(size)
+//      << ", local_padding: " << local_padding
+//      << ", width: " << width
+//      << ", tpwidth(): " << texture_patch->get_width()
+//      << ", height: " << height
+//      << ", tpheight(): " << texture_patch->get_height()
+//      << ", expected area: " << width * height
+//      << std::flush;
 
   Rect<int> rect(0, 0, width, height);
+  auto area = bin->insert(&rect) ? width * height : 0;
 
-  if (!bin->insert(&rect))
-    return 0;
+//  std::cout << ", actual area: " << area << std::endl;
+
+  if (0 == area) return area;
 
   /* Update texture atlas and its validity mask. */
   mve::ByteImage::Ptr patch_image =
@@ -125,17 +129,28 @@ uint TextureAtlas::insert(TexturePatch::Ptr texture_patch) {
       texcoords.push_back(texcoord);
     }
   }
-  return width * height;
+  
+  return area;
 }
 
-void TextureAtlas::apply_edge_padding(void) {
+/**
+  @brief Generate padding pixels bordering each chart on the atlas page.
+  @details Effectively, we radially dilate the values of every border pixel of
+  every texture chart in a breadth-first manner until we encounter another
+  padding pixel, a valid pixel, or the texture edge. Dilation will be performed
+  out to a maximum distance of the base padding distance; this will be at least
+  as large as the local padding set aside around each chart, but given the
+  aforementioned termination conditions will not cause a conflict.
+*/
+void TextureAtlas::apply_edge_padding() {
   assert(image != NULL);
   assert(validity_mask != NULL);
 
   const int width = image->width();
   const int height = image->height();
 
-  math::Matrix<float, 3, 3> gauss;
+  math::Matrix<float, 3, 3> gauss {};
+
   gauss[0] = 1.0f;
   gauss[1] = 2.0f;
   gauss[2] = 1.0f;
@@ -145,10 +160,12 @@ void TextureAtlas::apply_edge_padding(void) {
   gauss[6] = 1.0f;
   gauss[7] = 2.0f;
   gauss[8] = 1.0f;
+  
   gauss /= 16.0f;
 
-  /* Calculate the set of invalid pixels at the border of texture patches. */
-  PixelSet invalid_border_pixels;
+  //  Calculate the set of invalid pixels at the border of texture patches.
+  PixelSet invalid_border_pixels {};
+  
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       if (validity_mask->at(x, y, 0) == 255)
@@ -173,23 +190,27 @@ void TextureAtlas::apply_edge_padding(void) {
   mve::ByteImage::Ptr new_validity_mask = validity_mask->duplicate();
 
   /* Iteratively dilate border pixels until padding constants are reached. */
-  for (unsigned int n = 0; n <= padding; ++n) {
-    PixelVector new_valid_pixels;
+  auto padding = compute_base_padding(size);
 
-    PixelSet::iterator it = invalid_border_pixels.begin();
+  for (unsigned int n = 0; n <= padding; ++n) {
+    PixelVector new_valid_pixels {};
+    auto it = invalid_border_pixels.begin();
+
     for (; it != invalid_border_pixels.end(); it++) {
       int x = it->first;
       int y = it->second;
-
       bool now_valid = false;
+
       /* Calculate new pixel value. */
       for (int c = 0; c < 3; ++c) {
         float norm = 0.0f;
         float value = 0.0f;
+        
         for (int j = -1; j <= 1; ++j) {
           for (int i = -1; i <= 1; ++i) {
             int nx = x + i;
             int ny = y + j;
+            
             if (0 <= nx && nx < width && 0 <= ny && ny < height
                 && new_validity_mask->at(nx, ny, 0) == 255) {
               float w = gauss[(j + 1) * 3 + (i + 1)];
@@ -199,11 +220,11 @@ void TextureAtlas::apply_edge_padding(void) {
           }
         }
 
-        if (norm == 0.0f)
-          continue;
+        if (norm == 0.0f) continue;
 
         now_valid = true;
-        image->at(x, y, c) = (value / norm) * 255.0f;
+//        image->at(x, y, c) = (value / norm) * 255.0f;
+        image->at(x, y, c) = (c == 1 || c == 2) ? 255 : 0;
       }
 
       if (now_valid) {
@@ -221,15 +242,16 @@ void TextureAtlas::apply_edge_padding(void) {
       new_validity_mask->at(x, y, 0) = 255;
     }
 
-    /* Calculate the set of invalid pixels at the border of the valid area. */
+    //  Calculate the set of invalid pixels at the border of the valid area.
     for (std::size_t i = 0; i < new_valid_pixels.size(); ++i) {
       int x = new_valid_pixels[i].first;
       int y = new_valid_pixels[i].second;
 
       for (int j = -1; j <= 1; ++j) {
-        for (int i = -1; i <= 1; ++i) {
-          int nx = x + i;
+        for (int k = -1; k <= 1; ++k) {
+          int nx = x + k;
           int ny = y + j;
+          
           if (0 <= nx && nx < width && 0 <= ny && ny < height
               && new_validity_mask->at(nx, ny, 0) == 0) {
             invalid_border_pixels.insert(std::pair<int, int>(nx, ny));

@@ -48,14 +48,17 @@ public:
       mve::FloatImage::Ptr _image);
 
   TexturePatch(TexturePatch const& texture_patch);
+
   TexturePatch(
       TexturePatch const& texture_patch,
       const std::vector<std::size_t>& new_face_indices);
 
   static TexturePatch::Ptr create(TexturePatch::Ptr texture_patch);
+
   static TexturePatch::Ptr create(
       TexturePatch::Ptr texture_patch,
       const std::vector<std::size_t>& new_face_indices);
+
   static TexturePatch::Ptr create(
       int label,
       std::vector<std::size_t> const& faces,

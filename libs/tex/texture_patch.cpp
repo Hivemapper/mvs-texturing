@@ -127,32 +127,101 @@ TexturePatch::TexturePatch(
   }
 }
 
-// Custom implementation of area interpolation based rescaling for nice
-// moire-free patch shrinking
+/**
+    FIXME - bitweeder
+    It is CRITICAL that these texcoords line up with the rescaled image, or
+    else we’ll be rendering pure garbage. We almost definitely need to
+    replace the image scaling approach to ensure these two are getting
+    altered in lock-step.
+*/
+math::Vec2f scale_texcoord(
+    math::Vec2f const& tc,
+    int old_width,
+    int old_height,
+    int new_width,
+    int new_height);
+math::Vec2f scale_texcoord(
+    math::Vec2f const& tc,
+    int old_width,
+    int old_height,
+    int new_width,
+    int new_height) {
+  math::Vec2f nrv {};
+  
+  const float w0 = static_cast<float>(old_width);
+  const float w1 = static_cast<float>(new_width);
+  const float h0 = static_cast<float>(old_height);
+  const float h1 = static_cast<float>(new_height);
+
+  float x = tc[0] * w1 * w1 / w0;
+  float y = tc[1] * h1 * h1 / h0;
+  float x_prop = std::min(1.0f, (std::ceil(x) - x) * w0 / w1);
+  float y_prop = std::min(1.0f, (std::ceil(y) - y) * h0 / h1);
+
+  //  FIXME - bitweeder
+  //  Placeholder logic. We actually need to determine the extrema of the
+  //  bounding rect and assign the appropriate coords based on where the input
+  //  coords fall relative to those.
+  if (x_prop > 0.999 && y_prop > 0.999) {
+    nrv = {x / w1, y / h1};
+  } else if (x_prop > 0.999) {
+    nrv = {x / w1, (y + 1.0f) / h1};
+  } else if (y_prop > 0.999) {
+    nrv = {(x + 1.0f) / w1, y / h1};
+  } else {
+    nrv = {(x + 1.0f) / w1, (y + 1.0f) / h1};
+  }
+
+  return nrv;
+}
+
+/**
+  @brief Moire-free image scaling.
+ 
+  @details Smear the original texel over a grid up to 2x2 texels large based on
+  the conversion from the original coordinates. Note that this algorithm is
+  content-agnostic; every texel in the recsale area will be processed
+  regardless of whether it contains any signal.
+ 
+  FIXME - bitweeder
+  This will play merry hell with texture coordinates, especially in an atlas,
+  and especially if the neighboring charts are scaled at different rates or
+  rotated relative to the adjacent adges. A more transformation-agnostic
+  variant would use a 3x3 grid centered on the original texel.
+*/
+mve::FloatImage::Ptr rescale_area(
+    mve::FloatImage::Ptr input_image,
+    const int new_width,
+    const int new_height);
 mve::FloatImage::Ptr rescale_area(
     mve::FloatImage::Ptr input_image,
     const int new_width,
     const int new_height) {
-  mve::FloatImage::Ptr out_image(mve::FloatImage::create());
+  auto out_image(mve::FloatImage::create());
+
   out_image->allocate(new_width, new_height, input_image->channels());
   out_image->fill(0.0);
-  const int old_width = input_image->width();
-  const int old_height = input_image->height();
+
+  const auto old_width = input_image->width();
+  const auto old_height = input_image->height();
   const float x_scale = new_width / (float)old_width;
   const float y_scale = new_height / (float)old_height;
+
   assert(new_width <= old_width);
   assert(new_height <= old_height);
+
   for (int ci = 0; ci < input_image->channels(); ++ci) {
     for (int y = 0; y < old_height; ++y) {
       float y_low = y * y_scale;
       float y_prop = std::min(1.0f, (std::floor(y_low) + 1 - y_low) / y_scale);
+//      float y_prop = std::min(1.0f, (std::ceil(y_low) - y_low) / y_scale);
+
       for (int x = 0; x < old_width; ++x) {
         float x_low = x * x_scale;
-        //                float x_high = (x+1)*x_scale;
-
         float x_prop = std::min(1.0f, (std::floor(x_low) + 1 - x_low) / x_scale);
-
+//        float x_prop = std::min(1.0f, (std::ceil(x_low) - x_low) / x_scale);
         float val = input_image->at(x, y, ci) * x_scale * y_scale;
+
         if (x_prop > 0.999 && y_prop > 0.999) {
           out_image->at((int)x_low, (int)y_low, ci) += val;
         } else if (x_prop > 0.999) {
@@ -162,8 +231,6 @@ mve::FloatImage::Ptr rescale_area(
           out_image->at((int)x_low, (int)y_low, ci) += val * x_prop;
           out_image->at((int)x_low + 1, (int)y_low, ci) += val * (1 - x_prop);
         } else {
-          // std::cout << x_low << ", " << x_prop << " -- " << y_low << ", " <<
-          // y_prop << std::endl;
           out_image->at((int)x_low, (int)y_low, ci) += val * x_prop * y_prop;
           out_image->at((int)x_low + 1, (int)y_low, ci) +=
               val * (1 - x_prop) * y_prop;
@@ -175,6 +242,7 @@ mve::FloatImage::Ptr rescale_area(
       }
     }
   }
+  
   return out_image;
 }
 
@@ -184,52 +252,108 @@ void TexturePatch::rescale(double ratio) {
   int old_height = get_height();
   int new_width = std::ceil(old_width * ratio);
   int new_height = std::ceil(old_height * ratio);
-  //  FIXME - bitweeder
-  //  It looks like the use of texture_patch_border got cargo-culted from
-  //  somewhere else; it seems to be an ad hoc correction applied in the
-  //  original source when working with the component triangles of a texture
-  //  patch, and not at all relevant to a scaling operation.
-//  double width_mult = (new_width - texture_patch_border)
-//                      / (double)(old_width - texture_patch_border);
-//  double height_mult = (new_height - texture_patch_border)
-//                       / (double)(old_height - texture_patch_border);
-  // image = mve::image::rescale<float>(image,
-  // mve::image::RescaleInterpolation::RESCALE_LINEAR, new_width, new_height);
+
+  //  SEEME - bitweeder
+  //  It appears that there were moiré patterns being generated with the
+  //  image scaling being done originally, necessitating an image scaling
+  //  replacement function.
+//  image = mve::image::rescale<float>(image,
+//    mve::image::RescaleInterpolation::RESCALE_LINEAR, new_width, new_height);
   image = rescale_area(image, new_width, new_height);
-  // not sure these rescales are ideal. If this happens before masking it's
-  // wasted, if this happens after I'm not sure it works well.
-  if (validity_mask != nullptr) {
-    validity_mask = mve::image::rescale<uint8_t>(
-        validity_mask,
-        mve::image::RescaleInterpolation::RESCALE_NEAREST,
-        new_width,
-        new_height);
-  }
-  if (blending_mask != nullptr) {
-    blending_mask = mve::image::rescale<uint8_t>(
-        blending_mask,
-        mve::image::RescaleInterpolation::RESCALE_NEAREST,
-        new_width,
-        new_height);
-  }
+
+  //  FIXME - bitweeder
+  //  It is CRITICAL that these texcoords line up with the rescaled image, or
+  //  else we’ll be rendering pure garbage. We almost definitely need to
+  //  replace the image scaling approach to ensure these two are getting
+  //  altered in lock-step.
+  //  We use the actual integer values for the rational number multiplication
+  //  in order to avoid tiny precision errors.
   for (auto&& coord : texcoords) {
-//    coord[0] *= height_mult;
-//    coord[1] *= width_mult;
+//    coord = scale_texcoord(coord, old_width, old_height, new_width, new_height);
     coord[0] *= ratio;
     coord[1] *= ratio;
+//    coord[0] *= static_cast<float>(old_width) / static_cast<float>(new_width);
+//    coord[1] *= static_cast<float>(old_height) / static_cast<float>(new_height);
+//    coord[0] = coord[0] * static_cast<float>(new_width) / static_cast<float>(old_width);
+//    coord[1] = coord[1] * static_cast<float>(new_height) / static_cast<float>(old_height);
   }
+  
+  //  We recalculate the validity_mask and blending_mask from scratch to void
+  //  rounding errors of all kinds.
+  const float k_sqrt_2 = std::sqrt(2);
+  validity_mask = mve::ByteImage::create(get_width(), get_height(), 1);
+  validity_mask->fill(0);
+  blending_mask = mve::ByteImage::create(get_width(), get_height(), 1);
+  blending_mask->fill(0);
+
+  if (texcoords.size() >= 3) {
+    for (std::size_t i = 0; i < texcoords.size(); i += 3) {
+      math::Vec2f v1 = texcoords[i];
+      math::Vec2f v2 = texcoords[i + 1];
+      math::Vec2f v3 = texcoords[i + 2];
+
+      Tri tri {v1, v2, v3};
+      float area = tri.get_area();
+
+      //  Ignore degenerate triangles.
+      if (area < std::numeric_limits<float>::epsilon()) continue;
+
+      Rect<float> aabb = tri.get_aabb();
+      int const min_x = static_cast<int>(std::floor(aabb.min_x));
+      int const min_y = static_cast<int>(std::floor(aabb.min_y));
+      int const max_x = static_cast<int>(std::ceil(aabb.max_x));
+      int const max_y = static_cast<int>(std::ceil(aabb.max_y));
+
+      assert(0 <= min_x && max_x <= get_width());
+      assert(0 <= min_y && max_y <= get_height());
+      assert(max_x <= validity_mask->width());
+      assert(max_y <= validity_mask->height());
+      assert(max_x <= blending_mask->width());
+      assert(max_y <= blending_mask->height());
+
+      for (int y = min_y; y < max_y; ++y) {
+        for (int x = min_x; x < max_x; ++x) {
+          math::Vec3f bcoords = tri.get_barycentric_coords(x, y);
+          bool inside = bcoords.minimum() >= 0.0f;
+          if (inside) {
+            assert(x != 0 && y != 0);
+
+            validity_mask->at(x, y, 0) = 255;
+            blending_mask->at(x, y, 0) = 255;
+          } else {
+            if (validity_mask->at(x, y, 0) == 255)
+              continue;
+
+            /* Check whether the pixels distance from the triangle is more than
+             * one pixel. */
+            float ha = 2.0f * -bcoords[0] * area / (v2 - v3).norm();
+            float hb = 2.0f * -bcoords[1] * area / (v1 - v3).norm();
+            float hc = 2.0f * -bcoords[2] * area / (v1 - v2).norm();
+
+            if (ha > k_sqrt_2 || hb > k_sqrt_2 || hc > k_sqrt_2)
+              continue;
+
+            validity_mask->at(x, y, 0) = 255;
+            blending_mask->at(x, y, 0) = 64;
+          }
+        }
+      }
+    }
+  }
+  
   assert(get_width() == validity_mask->width());
   assert(get_height() == validity_mask->height());
   assert(get_width() == blending_mask->width());
   assert(get_height() == blending_mask->height());
 }
 
-const float sqrt_2 = sqrt(2);
-
 void TexturePatch::adjust_colors(
     std::vector<math::Vec3f> const& adjust_values,
     int num_channels) {
   assert(blending_mask != nullptr);
+
+  const float k_sqrt_2 = std::sqrt(2);
+
   validity_mask->fill(0);
 
   mve::FloatImage::Ptr iadjust_values =
@@ -284,7 +408,7 @@ void TexturePatch::adjust_colors(
           float hb = 2.0f * -bcoords[1] * area / (v1 - v3).norm();
           float hc = 2.0f * -bcoords[2] * area / (v1 - v2).norm();
 
-          if (ha > sqrt_2 || hb > sqrt_2 || hc > sqrt_2)
+          if (ha > k_sqrt_2 || hb > k_sqrt_2 || hc > k_sqrt_2)
             continue;
           for (int c = 0; c < num_channels; ++c) {
             iadjust_values->at(x, y, c) = math::interpolate(

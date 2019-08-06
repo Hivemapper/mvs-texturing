@@ -34,8 +34,7 @@ public:
 
 private:
   unsigned int const size;
-  unsigned int const padding;
-  bool finalized;
+  bool finalized {false};
 
   Faces faces;
   Texcoords texcoords;
@@ -46,22 +45,22 @@ private:
 
   RectangularBin::Ptr bin;
 
-  void apply_edge_padding(void);
-  void merge_texcoords(void);
+  void apply_edge_padding();
+  void merge_texcoords();
 
 public:
   TextureAtlas(unsigned int size);
 
   static TextureAtlas::Ptr create(unsigned int size);
 
-  Faces const& get_faces(void) const;
-  TexcoordIds const& get_texcoord_ids(void) const;
-  Texcoords const& get_texcoords(void) const;
-  mve::ByteImage::ConstPtr get_image(void) const;
+  Faces const& get_faces() const;
+  TexcoordIds const& get_texcoord_ids() const;
+  Texcoords const& get_texcoords() const;
+  mve::ByteImage::ConstPtr get_image() const;
 
   uint insert(TexturePatch::Ptr texture_patch);
 
-  void finalize(void);
+  void finalize();
 };
 
 /**
@@ -97,27 +96,30 @@ inline uint compute_local_padding(
   uint size = std::max(base_width, base_height);
   uint local_padding = std::min(std::max(2u, size >> 4), max_padding);
 
-  return local_padding;
+  //  FIXME - bitweeder
+  //  This is a test; it seems excessive to have a border wider than 2 pixels,
+  //  even with anisotropic/trilinear filtering. Testing a smaller value to
+  //  conserve space.
+  return 2;//local_padding;
 }
 
 inline TextureAtlas::Ptr TextureAtlas::create(unsigned int size) {
   return Ptr(new TextureAtlas(size));
 }
 
-inline TextureAtlas::Faces const& TextureAtlas::get_faces(void) const {
+inline TextureAtlas::Faces const& TextureAtlas::get_faces() const {
   return faces;
 }
 
-inline TextureAtlas::TexcoordIds const& TextureAtlas::get_texcoord_ids(
-    void) const {
+inline TextureAtlas::TexcoordIds const& TextureAtlas::get_texcoord_ids() const {
   return texcoord_ids;
 }
 
-inline TextureAtlas::Texcoords const& TextureAtlas::get_texcoords(void) const {
+inline TextureAtlas::Texcoords const& TextureAtlas::get_texcoords() const {
   return texcoords;
 }
 
-inline mve::ByteImage::ConstPtr TextureAtlas::get_image(void) const {
+inline mve::ByteImage::ConstPtr TextureAtlas::get_image() const {
   if (!finalized) {
     throw util::Exception("Texture atlas not finalized");
   }

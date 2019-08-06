@@ -47,6 +47,7 @@ void textureMesh(
   if (atlas_size == 0) {
     atlas_size = 4096;
   }
+//  atlas_size = 16 * 1024;
 
   std::cout << "Texturing ...\n Eigen version:" << std::endl;
   std::cout << EIGEN_WORLD_VERSION << "." << EIGEN_MAJOR_VERSION << "."
