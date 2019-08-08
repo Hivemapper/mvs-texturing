@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include <mve/mesh_io_ply.h>
@@ -29,7 +30,7 @@ void textureMesh(
     std::shared_ptr<EuclideanViewMask> ev_mask,
     uint atlas_size,
     float* hidden_face_proportion,
-    std::vector<std::vector<uint8_t>>* segmentation_classes,
+    std::shared_ptr<std::vector<std::vector<uint8_t>>> segmentation_classes,
     bool do_texture_atlas) {
   bool write_intermediate_results = false;
   // the number of channels in the image
@@ -300,7 +301,7 @@ void textureMesh(
       }
       timer.measure("Running local seam leveling with object classes");
 
-      if (segmentation_classes != nullptr) {
+      if (segmentation_classes) {
         std::cout << "Setting segmentation class probabilities for "
                   << vertex_projection_infos.size()
                   << " vertices:" << std::endl;
