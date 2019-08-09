@@ -34,8 +34,7 @@ public:
 
 private:
   unsigned int const size;
-  unsigned int const padding;
-  bool finalized;
+  bool finalized {false};
 
   Faces faces;
   Texcoords texcoords;
@@ -46,49 +45,81 @@ private:
 
   RectangularBin::Ptr bin;
 
-  void apply_edge_padding(void);
-  void merge_texcoords(void);
+  void apply_edge_padding();
+  void merge_texcoords();
 
 public:
   TextureAtlas(unsigned int size);
 
   static TextureAtlas::Ptr create(unsigned int size);
 
-  Faces const& get_faces(void) const;
-  TexcoordIds const& get_texcoord_ids(void) const;
-  Texcoords const& get_texcoords(void) const;
-  mve::ByteImage::ConstPtr get_image(void) const;
+  Faces const& get_faces() const;
+  TexcoordIds const& get_texcoord_ids() const;
+  Texcoords const& get_texcoords() const;
+  mve::ByteImage::ConstPtr get_image() const;
 
-  bool insert(TexturePatch::ConstPtr texture_patch);
+  uint insert(TexturePatch::Ptr texture_patch);
 
-  void finalize(void);
+  void finalize();
 };
 
-inline uint
-compute_local_padding(uint base_width, uint base_height, uint max_padding) {
+/**
+  @brief Calculate the default padding around each chart in the atlas.
+  @details The calculated value is based strctly on the edge length of the
+  atlas. The actual padding used for a given chart is uses this as a starting
+  point, but may vary substantially depending on the characteristics of the
+  chart and any usage requirements.
+*/
+inline uint compute_base_padding(uint edge_length) {
+  return std::min(12u, edge_length >> 8);
+}
+
+/**
+  @brief Return the calculated texel padding required by a give chart.
+  @details A given chart is guaranteed to have no fewer than 2 texels and
+  no more than max_padding texels of padding surrounding it on the atlas page.
+  Within this range, the padding is 1/16 of the larger of the bounding rect’s
+  width and height. As implied, the amount of padding is constant in both
+  height and width.
+ 
+  @param base_width is the width of the chart’s bounding rect.
+  @param base_height is the height of the chart’s bounding rect.
+  @param max_padding is the maximum value that may be returned.
+ 
+  @return a positive integer padding value in [2, `max_padding`]
+*/
+inline uint compute_local_padding(
+    uint base_width,
+    uint base_height,
+    uint edge_length) {
+  uint max_padding = compute_base_padding(edge_length);
   uint size = std::max(base_width, base_height);
-  uint local_padding = std::min(std::max(2u, size / 16u), max_padding);
-  return local_padding;
+  uint local_padding = std::min(std::max(2u, size >> 4), max_padding);
+
+  //  FIXME - bitweeder
+  //  This is a test; it seems excessive to have a border wider than 2 pixels,
+  //  even with anisotropic/trilinear filtering. Testing a smaller value to
+  //  conserve space.
+  return 2;//local_padding;
 }
 
 inline TextureAtlas::Ptr TextureAtlas::create(unsigned int size) {
   return Ptr(new TextureAtlas(size));
 }
 
-inline TextureAtlas::Faces const& TextureAtlas::get_faces(void) const {
+inline TextureAtlas::Faces const& TextureAtlas::get_faces() const {
   return faces;
 }
 
-inline TextureAtlas::TexcoordIds const& TextureAtlas::get_texcoord_ids(
-    void) const {
+inline TextureAtlas::TexcoordIds const& TextureAtlas::get_texcoord_ids() const {
   return texcoord_ids;
 }
 
-inline TextureAtlas::Texcoords const& TextureAtlas::get_texcoords(void) const {
+inline TextureAtlas::Texcoords const& TextureAtlas::get_texcoords() const {
   return texcoords;
 }
 
-inline mve::ByteImage::ConstPtr TextureAtlas::get_image(void) const {
+inline mve::ByteImage::ConstPtr TextureAtlas::get_image() const {
   if (!finalized) {
     throw util::Exception("Texture atlas not finalized");
   }

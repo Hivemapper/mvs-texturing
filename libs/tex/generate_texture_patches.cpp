@@ -73,9 +73,9 @@ struct TexturePatchCandidate {
 };
 
 /** Create a TexturePatchCandidate by calculating the faces' bounding box
- * projected into the view,
- *  relative texture coordinates and extacting the texture views relevant part
- */
+  projected into the view, relative texture coordinates and extacting the
+  texture views relevant part.
+*/
 TexturePatchCandidate generate_candidate(
     int label,
     TextureView const& texture_view,
@@ -89,7 +89,8 @@ TexturePatchCandidate generate_candidate(
   mve::TriangleMesh::FaceList const& mesh_faces = mesh->get_faces();
   mve::TriangleMesh::VertexList const& vertices = mesh->get_vertices();
 
-  std::vector<math::Vec2f> texcoords;
+  std::vector<math::Vec2f> texcoords {};
+ 
   for (std::size_t i = 0; i < faces.size(); ++i) {
     for (std::size_t j = 0; j < 3; ++j) {
       math::Vec3f vertex = vertices[mesh_faces[faces[i] * 3 + j]];
@@ -130,7 +131,7 @@ TexturePatchCandidate generate_candidate(
       view_image, width, height, min_x, min_y, *math::Vec3uc(255, 0, 255));
   mve::FloatImage::Ptr image = mve::image::byte_to_float_image(byte_image);
 
-  if (!settings.tone_mapping == TONE_MAPPING_NONE) {
+  if (settings.tone_mapping != TONE_MAPPING_NONE) {
     mve::image::gamma_correct(image, 2.2f);
   }
 
@@ -500,49 +501,54 @@ void generate_texture_patches(
     std::vector<std::vector<VertexProjectionInfo>>* vertex_projection_infos,
     std::vector<TexturePatch::Ptr>* texture_patches) {
   util::WallTimer timer;
-
   mve::TriangleMesh::FaceList const& mesh_faces = mesh->get_faces();
   mve::TriangleMesh::VertexList const& vertices = mesh->get_vertices();
   vertex_projection_infos->resize(vertices.size());
-
   std::size_t num_patches = 0;
 
   std::cout << "\tRunning... " << std::flush;
+
   #pragma omp parallel for schedule(dynamic)
   for (std::size_t i = 0; i < texture_views->size(); ++i) {
     // std::cout << i << std::endl;
-    std::vector<std::vector<std::size_t>> subgraphs;
-    int const label = i + 1;
+    std::vector<std::vector<std::size_t>> subgraphs; {}
+    std::size_t const label = i + 1;
+
     graph.get_subgraphs(label, &subgraphs);
 
     TextureView* texture_view = &texture_views->at(i);
+
     texture_view->load_image();
-    std::list<TexturePatchCandidate> candidates;
+
+    std::list<TexturePatchCandidate> candidates {};
+
     for (std::size_t j = 0; j < subgraphs.size(); ++j) {
       candidates.push_back(generate_candidate(
-          label, *texture_view, subgraphs[j], mesh, settings));
+          static_cast<int>(label), *texture_view, subgraphs[j], mesh, settings));
     }
+
     texture_view->release_image();
 
     /* Merge candidates which contain the same image content. */
-    std::list<TexturePatchCandidate>::iterator it, sit;
-    for (it = candidates.begin(); it != candidates.end(); ++it) {
-      for (sit = candidates.begin(); sit != candidates.end();) {
+    for (auto it = candidates.begin(); it != candidates.end(); ++it) {
+      for (auto sit = candidates.begin(); sit != candidates.end();) {
         Rect<int> bounding_box = sit->bounding_box;
+
         if (it != sit && bounding_box.is_inside(&it->bounding_box)) {
           TexturePatch::Faces& faces = it->texture_patch->get_faces();
           TexturePatch::Faces& ofaces = sit->texture_patch->get_faces();
+
           faces.insert(faces.end(), ofaces.begin(), ofaces.end());
 
-          TexturePatch::Texcoords& texcoords =
-              it->texture_patch->get_texcoords();
-          TexturePatch::Texcoords& otexcoords =
-              sit->texture_patch->get_texcoords();
-          math::Vec2f offset;
-          offset[0] = sit->bounding_box.min_x - it->bounding_box.min_x;
-          offset[1] = sit->bounding_box.min_y - it->bounding_box.min_y;
-          for (std::size_t i = 0; i < otexcoords.size(); ++i) {
-            texcoords.push_back(otexcoords[i] + offset);
+          auto& texcoords = it->texture_patch->get_texcoords();
+          auto& otexcoords = sit->texture_patch->get_texcoords();
+          math::Vec2f offset {
+            sit->bounding_box.min_x - it->bounding_box.min_x,
+            sit->bounding_box.min_y - it->bounding_box.min_y
+          };
+          
+          for (std::size_t j = 0; j < otexcoords.size(); ++j) {
+            texcoords.push_back(otexcoords[j] + offset);
           }
 
           sit = candidates.erase(sit);
@@ -552,8 +558,7 @@ void generate_texture_patches(
       }
     }
 
-    it = candidates.begin();
-    for (; it != candidates.end(); ++it) {
+    for (auto it = candidates.begin(); it != candidates.end(); ++it) {
       std::size_t texture_patch_id;
 
       #pragma omp critical
@@ -565,13 +570,14 @@ void generate_texture_patches(
       std::vector<std::size_t> const& faces = it->texture_patch->get_faces();
       std::vector<math::Vec2f> const& texcoords =
           it->texture_patch->get_texcoords();
-      for (std::size_t i = 0; i < faces.size(); ++i) {
-        std::size_t const face_id = faces[i];
+      
+      for (std::size_t j = 0; j < faces.size(); ++j) {
+        std::size_t const face_id = faces[j];
         std::size_t const face_pos = face_id * 3;
-        for (std::size_t j = 0; j < 3; ++j) {
-          std::size_t const vertex_id = mesh_faces[face_pos + j];
-          math::Vec2f const projection = texcoords[i * 3 + j];
-
+        
+        for (std::size_t k = 0; k < 3; ++k) {
+          std::size_t const vertex_id = mesh_faces[face_pos + k];
+          math::Vec2f const projection = texcoords[j * 3 + k];
           VertexProjectionInfo info = {texture_patch_id, projection, {face_id}};
 
           #pragma omp critical
@@ -580,12 +586,14 @@ void generate_texture_patches(
       }
     }
   }
+  
   // std::cout << "Merging... " << std::endl;
   merge_vertex_projection_infos(vertex_projection_infos);
   // std::cout << "Merged " << std::endl;
   {
-    std::vector<std::size_t> unseen_faces;
-    std::vector<std::vector<std::size_t>> subgraphs;
+    std::vector<std::size_t> unseen_faces {};
+    std::vector<std::vector<std::size_t>> subgraphs {};
+
     graph.get_subgraphs(0, &subgraphs);
 
     // std::cout << "filling holes " << subgraphs.size() << std::endl;
@@ -594,6 +602,7 @@ void generate_texture_patches(
       std::vector<std::size_t> const& subgraph = subgraphs[i];
       // std::cout << i << std::endl;
       bool success = false;
+ 
       if (settings.hole_filling) {
         success = fill_hole(
             subgraph,
@@ -622,23 +631,28 @@ void generate_texture_patches(
     // std::cout << "creating patches" << std::endl;
     if (!unseen_faces.empty()) {
       mve::FloatImage::Ptr image = mve::FloatImage::create(3, 3, 3);
-      std::vector<math::Vec2f> texcoords;
+      std::vector<math::Vec2f> texcoords {};
+      
       for (std::size_t i = 0; i < unseen_faces.size(); ++i) {
         math::Vec2f projections[] = {{2.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 2.0f}};
+
         texcoords.insert(texcoords.end(), &projections[0], &projections[3]);
       }
+      
       TexturePatch::Ptr texture_patch =
           TexturePatch::create(0, unseen_faces, texcoords, image);
+      
       texture_patches->push_back(texture_patch);
+      
       std::size_t texture_patch_id = texture_patches->size() - 1;
 
       for (std::size_t i = 0; i < unseen_faces.size(); ++i) {
         std::size_t const face_id = unseen_faces[i];
         std::size_t const face_pos = face_id * 3;
+        
         for (std::size_t j = 0; j < 3; ++j) {
           std::size_t const vertex_id = mesh_faces[face_pos + j];
           math::Vec2f const projection = texcoords[i * 3 + j];
-
           VertexProjectionInfo info = {texture_patch_id, projection, {face_id}};
 
           vertex_projection_infos->at(vertex_id).push_back(info);
@@ -646,6 +660,7 @@ void generate_texture_patches(
       }
     }
   }
+  
   // std::cout << "Merging again... " << std::endl;
   merge_vertex_projection_infos(vertex_projection_infos);
 

@@ -29,14 +29,15 @@
 
 TEX_NAMESPACE_BEGIN
 
-typedef std::vector<TextureView> TextureViews;
-typedef std::vector<TexturePatch::Ptr> TexturePatches;
-typedef std::vector<TextureAtlas::Ptr> TextureAtlases;
-typedef ObjModel Model;
-typedef UniGraph Graph;
-typedef SparseTable<std::uint32_t, std::uint16_t, float> DataCosts;
-typedef std::vector<std::vector<VertexProjectionInfo>> VertexProjectionInfos;
-typedef std::vector<std::vector<FaceProjectionInfo>> FaceProjectionInfos;
+using TextureViews = std::vector<TextureView>;
+using TexturePatches = std::vector<TexturePatch::Ptr>;
+//using ConstTexturePatches = std::vector<TexturePatch::Ptr>;
+using TextureAtlases = std::vector<TextureAtlas::Ptr>;
+using Model = ObjModel;
+using Graph = UniGraph ;
+using DataCosts = SparseTable<std::uint32_t, std::uint16_t, float>;
+using VertexProjectionInfos = std::vector<std::vector<VertexProjectionInfo>>;
+using FaceProjectionInfos = std::vector<std::vector<FaceProjectionInfo>>;
 
 /**
  * prepares the mesh for texturing
@@ -127,17 +128,17 @@ void local_seam_leveling_n(
     TexturePatches* texture_object_class_patches = nullptr);
 
 void generate_texture_atlases(
-    TexturePatches* texture_patches,
-    Settings const& settings,
-    TextureAtlases* texture_atlases,
+    TexturePatches * orig_texture_patches,
+    Settings const & settings,
+    TextureAtlases * texture_atlases,
     const std::vector<math::Vec3f>& vertices,
     const std::vector<uint>& mesh_faces);
 
 void generate_capped_texture_atlas(
-    std::vector<TexturePatch::Ptr>* orig_texture_patches,
-    Settings const& settings,
-    std::vector<TextureAtlas::Ptr>* texture_atlases,
-    uint atlas_size,
+    TexturePatches * orig_texture_patches,
+    Settings const & settings,
+    TextureAtlases * texture_atlases,
+    uint max_atlas_dim,
     const std::vector<math::Vec3f>& vertices,
     const std::vector<uint>& faces);
 

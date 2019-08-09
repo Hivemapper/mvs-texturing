@@ -28,7 +28,6 @@ int const texture_patch_border = 1;
 class TexturePatch {
 public:
   typedef std::shared_ptr<TexturePatch> Ptr;
-  typedef std::shared_ptr<const TexturePatch> ConstPtr;
   typedef std::vector<std::size_t> Faces;
   typedef std::vector<math::Vec2f> Texcoords;
 
@@ -49,14 +48,17 @@ public:
       mve::FloatImage::Ptr _image);
 
   TexturePatch(TexturePatch const& texture_patch);
+
   TexturePatch(
       TexturePatch const& texture_patch,
       const std::vector<std::size_t>& new_face_indices);
 
-  static TexturePatch::Ptr create(TexturePatch::ConstPtr texture_patch);
+  static TexturePatch::Ptr create(TexturePatch::Ptr texture_patch);
+
   static TexturePatch::Ptr create(
-      TexturePatch::ConstPtr texture_patch,
+      TexturePatch::Ptr texture_patch,
       const std::vector<std::size_t>& new_face_indices);
+
   static TexturePatch::Ptr create(
       int label,
       std::vector<std::size_t> const& faces,
@@ -123,12 +125,12 @@ public:
 };
 
 inline TexturePatch::Ptr TexturePatch::create(
-    TexturePatch::ConstPtr texture_patch) {
+    TexturePatch::Ptr texture_patch) {
   return std::make_shared<TexturePatch>(*texture_patch);
 }
 
 inline TexturePatch::Ptr TexturePatch::create(
-    TexturePatch::ConstPtr texture_patch,
+    TexturePatch::Ptr texture_patch,
     const std::vector<std::size_t>& new_face_indices) {
   return std::make_shared<TexturePatch>(*texture_patch, new_face_indices);
 }
