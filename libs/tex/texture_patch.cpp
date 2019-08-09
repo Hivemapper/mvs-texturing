@@ -267,12 +267,17 @@ void TexturePatch::rescale(double ratio) {
   //  else we’ll be rendering pure garbage. We almost definitely need to
   //  replace the image scaling approach to ensure these two are getting
   //  altered in lock-step.
-  //  We use the actual integer values for the rational number multiplication
-  //  in order to avoid tiny precision errors.
   for (auto&& coord : texcoords) {
-//    coord = scale_texcoord(coord, old_width, old_height, new_width, new_height);
+    //  Original variant.
     coord[0] *= ratio;
     coord[1] *= ratio;
+
+    //  External function variant.
+//    coord = scale_texcoord(coord, old_width, old_height, new_width, new_height);
+
+    //  Rational number variant.
+    //  We use the actual integer values for the rational number multiplication
+    //  in order to avoid tiny precision errors.
 //    coord[0] *= static_cast<float>(old_width) / static_cast<float>(new_width);
 //    coord[1] *= static_cast<float>(old_height) / static_cast<float>(new_height);
 //    coord[0] = coord[0] * static_cast<float>(new_width) / static_cast<float>(old_width);

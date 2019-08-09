@@ -220,7 +220,9 @@ void TextureAtlas::apply_edge_padding() {
           }
         }
 
-        if (norm == 0.0f) continue;
+        if (norm == 0.0f) {
+          continue;
+        }
 
         now_valid = true;
         image->at(x, y, c) = (value / norm) * 255.0f;

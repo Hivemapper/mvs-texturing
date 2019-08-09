@@ -322,8 +322,8 @@ void TextureView::export_triangle(
   Tri tri(p1, p2, p3);
 
   Rect<float> aabb = tri.get_aabb();
-  const int width = ceil(aabb.width());
-  const int height = ceil(aabb.height());
+  const int width = std::ceil(aabb.width());
+  const int height = std::ceil(aabb.height());
   const int left = std::floor(aabb.min_x);
   const int top = std::floor(aabb.max_y);
 

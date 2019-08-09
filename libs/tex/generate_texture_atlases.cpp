@@ -20,7 +20,6 @@
 #include "defines.h"
 #include "histogram.h"
 #include "settings.h"
-#include "texturing.h"
 #include "texture_atlas.h"
 #include "texture_patch.h"
 #include "texturing.h"
@@ -39,7 +38,7 @@
 TEX_NAMESPACE_BEGIN
 
 /**
-  @brief Pull magic numbers out of Moehrle’s ass
+  @brief Return a set of estimated statistics for a proposed texture page.
   @details Heuristic to calculate an appropriate texture atlas size.
   @warning asserts that no texture patch exceeds the dimensions
   of the maximal possible texture atlas size.
@@ -62,10 +61,11 @@ struct AtlasPageEsts {
 };
 
 AtlasPageEsts compute_page_estimates(
-  TexturePatches const& texture_patches,
+    TexturePatches const& texture_patches,
     double scaling);
 
-AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches,
+AtlasPageEsts compute_page_estimates(
+    TexturePatches const& texture_patches,
     double scaling) {
   AtlasPageEsts nrv = {MAX_TEXTURE_SIZE, 0, 0, 0};
 
@@ -109,8 +109,8 @@ AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches,
     assert(nrv.max_chart_height <= MAX_TEXTURE_SIZE);
 
     //  FIXME - bitweeder
-    //  WTF is up with that last criterion? Is it “smaller than twice the
-    //  square of twice the preferred texture size”?
+    //  It’s unclear what the significance of the last criterion is - is it
+    //  “smaller than twice the square of twice the preferred texture size”?
     if (nrv.edge_length > PREF_TEXTURE_SIZE
      && nrv.max_chart_width < PREF_TEXTURE_SIZE
      && nrv.max_chart_height < PREF_TEXTURE_SIZE
@@ -125,7 +125,7 @@ AtlasPageEsts compute_page_estimates(TexturePatches const& texture_patches,
     }
 
     //  FIXME - bitweeder
-    //  Seriosuly, WTF?
+    //  This is all very mysterious.
     if (nrv.max_chart_height < nrv.edge_length / 2
      && nrv.max_chart_width < nrv.edge_length / 2
      && static_cast<double>(nrv.occupied_area) /
@@ -263,8 +263,6 @@ void generate_capped_texture_atlas(
     }
 
     if (atlas_complete) {
-      //  FIXME - bitweeder
-      //  Prettify this floating point value.
       std::cout << "Completed atlas page with " << i << " patches at "
                 << scaling * 100.0 << "% scaling on iteration "
                 << iterations << std::endl;
@@ -273,8 +271,6 @@ void generate_capped_texture_atlas(
       texture_atlases->push_back(texture_atlas);
       break;
     } else {
-      //  FIXME - bitweeder
-      //  Prettify this floating point value.
       std::cout << "Unable to complete atlas page with "
                 << scaling * 100.0 << "% scaling (area: "
                 << actual_occupied_area << "/"
@@ -336,8 +332,6 @@ void generate_texture_atlases(
         //  Try to insert each of the texture patches into the texture atlas.
         for (auto it = texture_patches.begin(); it != texture_patches.end();) {
           std::size_t done_patches = total_num_patches - remaining_patches;
-          int percent =
-              static_cast<float>(done_patches) / total_num_patches * 100.0f;
 
           if (texture_atlas->insert(*it)) {
             it = texture_patches.erase(it);
