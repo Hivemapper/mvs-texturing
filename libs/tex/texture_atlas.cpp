@@ -223,8 +223,8 @@ void TextureAtlas::apply_edge_padding() {
         if (norm == 0.0f) continue;
 
         now_valid = true;
-//        image->at(x, y, c) = (value / norm) * 255.0f;
-        image->at(x, y, c) = (c == 1 || c == 2) ? 255 : 0;
+        image->at(x, y, c) = (value / norm) * 255.0f;
+//        image->at(x, y, c) = (c == 0 || c == 2) ? 255 : 0;
       }
 
       if (now_valid) {
