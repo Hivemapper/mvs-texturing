@@ -186,6 +186,9 @@ void TextureAtlas::apply_edge_padding() {
       }
     }
   }
+  
+  //  Uncomment to disabled padding pixel coloring. (Padding area will remain)
+//  return;
 
   mve::ByteImage::Ptr new_validity_mask = validity_mask->duplicate();
 

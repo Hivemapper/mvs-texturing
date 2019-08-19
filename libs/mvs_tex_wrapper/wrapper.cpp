@@ -493,20 +493,20 @@ void textureMesh(
       std::cout << "Generating texture atlases:" << std::endl;
       //  FIXME capped method is desireable, but resizes currently have some
       //  issues that make it worse.
-//      tex::generate_capped_texture_atlas(
-//        &sub_texture_patches,
-//        settings,
-//        &sub_texture_atlases,
-//        static_cast<uint>(atlas_size),
-//        mesh->get_vertices(),
-//        mesh->get_faces());
+      tex::generate_capped_texture_atlas(
+        &sub_texture_patches,
+        settings,
+        &sub_texture_atlases,
+        static_cast<uint>(atlas_size),
+        mesh->get_vertices(),
+        mesh->get_faces());
 
-      tex::generate_texture_atlases(
-          &sub_texture_patches,
-          settings,
-          &sub_texture_atlases,
-          mesh->get_vertices(),
-          mesh->get_faces());
+//      tex::generate_texture_atlases(
+//          &sub_texture_patches,
+//          settings,
+//          &sub_texture_atlases,
+//          mesh->get_vertices(),
+//          mesh->get_faces());
 
       //  Create and write out obj model.
       {
