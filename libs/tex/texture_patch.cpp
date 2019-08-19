@@ -154,15 +154,19 @@ math::Vec2f scale_texcoord(
   const float h0 = static_cast<float>(old_height);
   const float h1 = static_cast<float>(new_height);
 
-  float x = tc[0] * w1 * w1 / w0;
-  float y = tc[1] * h1 * h1 / h0;
-  float x_prop = std::min(1.0f, (std::ceil(x) - x) * w0 / w1);
-  float y_prop = std::min(1.0f, (std::ceil(y) - y) * h0 / h1);
+  float x = tc[0] * w1 * (w1 / w0);
+  float y = tc[1] * h1 * (h1 / h0);
+  float x_prop = std::min(1.0f, (std::floor(x) + 1 - x) * (w0 / w1));
+  float y_prop = std::min(1.0f, (std::floor(y) + 1 - y) * (h0 / h1));
 
   //  FIXME - bitweeder
-  //  Placeholder logic. We actually need to determine the extrema of the
-  //  bounding rect and assign the appropriate coords based on where the input
-  //  coords fall relative to those.
+  //  Placeholder logic. We may need to determine the extrema of the
+  //  rect that circumscribes the triangle and assign the appropriate coords
+  //  based on where the input coords fall relative to those. Arguably, the
+  //  current approach should be fine because we apply it consistently, but I
+  //  suspect it presents a problem on chart boundaries since the charts may
+  //  be rotated with respect toeach other, rendering this simple tex coord
+  //  approach useless.
   if (x_prop > 0.999 && y_prop > 0.999) {
     nrv = {x / w1, y / h1};
   } else if (x_prop > 0.999) {
@@ -215,12 +219,10 @@ mve::FloatImage::Ptr rescale_area(
     for (int y = 0; y < old_height; ++y) {
       float y_low = y * y_scale;
       float y_prop = std::min(1.0f, (std::floor(y_low) + 1 - y_low) / y_scale);
-//      float y_prop = std::min(1.0f, (std::ceil(y_low) - y_low) / y_scale);
 
       for (int x = 0; x < old_width; ++x) {
         float x_low = x * x_scale;
         float x_prop = std::min(1.0f, (std::floor(x_low) + 1 - x_low) / x_scale);
-//        float x_prop = std::min(1.0f, (std::ceil(x_low) - x_low) / x_scale);
         float val = input_image->at(x, y, ci) * x_scale * y_scale;
 
         if (x_prop > 0.999 && y_prop > 0.999) {
@@ -269,11 +271,11 @@ void TexturePatch::rescale(double ratio) {
   //  altered in lock-step.
   for (auto&& coord : texcoords) {
     //  Original variant.
-    coord[0] *= ratio;
-    coord[1] *= ratio;
+//    coord[0] *= ratio;
+//    coord[1] *= ratio;
 
-    //  External function variant.
-//    coord = scale_texcoord(coord, old_width, old_height, new_width, new_height);
+    //  External function variant. Method should track image scaler.
+    coord = scale_texcoord(coord, old_width, old_height, new_width, new_height);
 
     //  Rational number variant.
     //  We use the actual integer values for the rational number multiplication

@@ -293,11 +293,11 @@ void generate_capped_texture_atlas(
       //  we’ll effectively fail no matter what we do.
       if ((actual_occupied_area + expected_occupied_area)
           < atlas_page_ests.occupied_area) {
-        scaling *= std::sqrt(
+        scaling = std::sqrt(
             static_cast<double>(actual_occupied_area + expected_occupied_area)
             / static_cast<double>(atlas_page_ests.occupied_area));
       } else {
-        scaling *= std::sqrt((static_cast<double>(actual_occupied_area)
+        scaling = std::sqrt((static_cast<double>(actual_occupied_area)
             / static_cast<double>(atlas_page_ests.occupied_area)));
       }
     }
