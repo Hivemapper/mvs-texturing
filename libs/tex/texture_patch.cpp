@@ -206,8 +206,8 @@ mve::FloatImage::Ptr rescale_area(
 
   out_image->allocate(new_width, new_height, input_image->channels());
   //  TESTME - bitweeder
-//  out_image->fill(0.0);
-  out_image->fill(0.5);
+  out_image->fill(0.0);
+//  out_image->fill(0.5);
 
   const auto old_width = input_image->width();
   const auto old_height = input_image->height();
@@ -245,6 +245,14 @@ mve::FloatImage::Ptr rescale_area(
               val * (1 - x_prop) * (1 - y_prop);
         }
       }
+    }
+    
+    for (int y = 0; y < new_height; ++y) {
+      out_image->at(new_width, y, ci) = 1.0;
+    }
+
+    for (int x = 0; x < new_width; ++x) {
+      out_image->at(x, new_height, ci) = 1.0;
     }
   }
   
