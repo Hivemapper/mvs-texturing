@@ -138,8 +138,8 @@ void textureMesh(
   }
 
   settings.geometric_visibility_test = texture_settings.do_geometric_visibility_test;
-  settings.global_seam_leveling = texture_settings.do_global_seam_leveling;
-  settings.local_seam_leveling = texture_settings.do_local_seam_leveling;
+  settings.global_seam_leveling = false; //texture_settings.do_global_seam_leveling;
+  settings.local_seam_leveling = false; //texture_settings.do_local_seam_leveling;
   settings.hole_filling = texture_settings.do_hole_filling;
   settings.keep_unseen_faces = texture_settings.do_keep_unseen_faces;
 
