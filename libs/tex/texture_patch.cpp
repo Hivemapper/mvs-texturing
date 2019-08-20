@@ -205,7 +205,9 @@ mve::FloatImage::Ptr rescale_area(
   auto out_image(mve::FloatImage::create());
 
   out_image->allocate(new_width, new_height, input_image->channels());
-  out_image->fill(0.0);
+  //  TESTME - bitweeder
+//  out_image->fill(0.0);
+  out_image->fill(1.0);
 
   const auto old_width = input_image->width();
   const auto old_height = input_image->height();
