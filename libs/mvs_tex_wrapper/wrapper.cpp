@@ -399,7 +399,6 @@ void textureMesh(
 
       timer.measure("Creating object class assignments");
     }
-
   } else {
     if (settings.local_seam_leveling) {
       std::cout << "Running local seam leveling:" << std::endl;
