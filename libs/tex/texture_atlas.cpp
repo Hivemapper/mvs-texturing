@@ -188,7 +188,7 @@ void TextureAtlas::apply_edge_padding() {
   }
   
   //  Uncomment to disabled padding pixel coloring. (Padding area will remain)
-//  return;
+  return;
 
   mve::ByteImage::Ptr new_validity_mask = validity_mask->duplicate();
 
@@ -228,8 +228,8 @@ void TextureAtlas::apply_edge_padding() {
         }
 
         now_valid = true;
-        image->at(x, y, c) = (value / norm) * 255.0f;
-//        image->at(x, y, c) = (c == 0 || c == 2) ? 255 : 0;
+//        image->at(x, y, c) = (value / norm) * 255.0f;
+        image->at(x, y, c) = (c == 1) ? 255 : 0;
       }
 
       if (now_valid) {
