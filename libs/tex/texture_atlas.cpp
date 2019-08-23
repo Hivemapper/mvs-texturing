@@ -14,6 +14,7 @@
 #include <mve/image_tools.h>
 #include <util/file_system.h>
 
+#include "settings.h"
 #include "texture_atlas.h"
 
 TextureAtlas::TextureAtlas(unsigned int size)
@@ -142,7 +143,7 @@ uint TextureAtlas::insert(TexturePatch::Ptr texture_patch) {
   as large as the local padding set aside around each chart, but given the
   aforementioned termination conditions will not cause a conflict.
 */
-void TextureAtlas::apply_edge_padding() {
+void TextureAtlas::apply_edge_padding(tex::Settings const& settings) {
   assert(image != NULL);
   assert(validity_mask != NULL);
 
@@ -187,8 +188,12 @@ void TextureAtlas::apply_edge_padding() {
     }
   }
   
-  //  Uncomment to disabled padding pixel coloring. (Padding area will remain)
-  return;
+  if (!settings.dilate_padding_pixels) {
+    std::cout << "Not applying edge padding" << std::endl;
+    return;
+  }
+  
+  std::cout << "Applying edge padding now" << std::endl;
 
   mve::ByteImage::Ptr new_validity_mask = validity_mask->duplicate();
 
@@ -228,8 +233,12 @@ void TextureAtlas::apply_edge_padding() {
         }
 
         now_valid = true;
-//        image->at(x, y, c) = (value / norm) * 255.0f;
-        image->at(x, y, c) = (c == 1) ? 255 : 0;
+        
+        if (settings.highlight_padding_pixels) {
+          image->at(x, y, c) = (c == 1) ? 255 : 0;
+        } else {
+          image->at(x, y, c) = (value / norm) * 255.0f;
+        }
       }
 
       if (now_valid) {
@@ -293,13 +302,13 @@ void TextureAtlas::merge_texcoords() {
   }
 }
 
-void TextureAtlas::finalize() {
+void TextureAtlas::finalize(tex::Settings const& settings) {
   if (finalized) {
     throw util::Exception("TextureAtlas already finalized");
   }
 
   this->bin.reset();
-  this->apply_edge_padding();
+  this->apply_edge_padding(settings);
   this->validity_mask.reset();
   this->merge_texcoords();
 

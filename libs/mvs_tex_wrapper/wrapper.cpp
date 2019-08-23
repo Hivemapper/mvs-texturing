@@ -142,6 +142,18 @@ void textureMesh(
   settings.local_seam_leveling = texture_settings.do_local_seam_leveling;
   settings.hole_filling = texture_settings.do_hole_filling;
   settings.keep_unseen_faces = texture_settings.do_keep_unseen_faces;
+  
+  settings.dilate_padding_pixels = texture_settings.do_dilate_padding_pixels;
+  settings.highlight_padding_pixels = texture_settings.do_highlight_padding_pixels;
+  settings.expose_blending_mask = texture_settings.do_expose_blending_mask;
+  settings.expose_validity_mask = texture_settings.do_expose_validity_mask;
+  settings.scale_if_needed = texture_settings.do_scale_if_needed;
+  
+  std::cout << "dilate_padding_pixels: " << settings.dilate_padding_pixels << std::endl;
+  std::cout << "highlight_padding_pixels: " << settings.highlight_padding_pixels << std::endl;
+  std::cout << "expose_blending_mask: " << settings.expose_blending_mask << std::endl;
+  std::cout << "expose_validity_mask: " << settings.expose_validity_mask << std::endl;
+  std::cout << "scale_if_needed: " << settings.scale_if_needed << std::endl;
 
   if (labeling_file.empty()) {
     std::cout << "View selection:" << std::endl;
@@ -490,22 +502,22 @@ void textureMesh(
 
       //  Generate texture atlases.
       std::cout << "Generating texture atlases:" << std::endl;
-      //  FIXME capped method is desireable, but resizes currently have some
-      //  issues that make it worse.
-      tex::generate_capped_texture_atlas(
-        &sub_texture_patches,
-        settings,
-        &sub_texture_atlases,
-        static_cast<uint>(atlas_size),
-        mesh->get_vertices(),
-        mesh->get_faces());
-
-//      tex::generate_texture_atlases(
-//          &sub_texture_patches,
-//          settings,
-//          &sub_texture_atlases,
-//          mesh->get_vertices(),
-//          mesh->get_faces());
+      if (settings.scale_if_needed) {
+        tex::generate_capped_texture_atlas(
+          &sub_texture_patches,
+          settings,
+          &sub_texture_atlases,
+          static_cast<uint>(atlas_size),
+          mesh->get_vertices(),
+          mesh->get_faces());
+      } else {
+        tex::generate_texture_atlases(
+            &sub_texture_patches,
+            settings,
+            &sub_texture_atlases,
+            mesh->get_vertices(),
+            mesh->get_faces());
+      }
 
       //  Create and write out obj model.
       {

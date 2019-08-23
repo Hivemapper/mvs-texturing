@@ -85,6 +85,12 @@ struct Settings {
   bool local_seam_leveling = true;
   bool hole_filling = true;
   bool keep_unseen_faces = false;
+  
+  bool dilate_padding_pixels = true;
+  bool highlight_padding_pixels = false;
+  bool expose_blending_mask = false;
+  bool expose_validity_mask = false;
+  bool scale_if_needed = false;
 };
 
 TEX_NAMESPACE_END

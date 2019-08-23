@@ -250,6 +250,12 @@ void generate_capped_texture_atlas(
 
         patch->rescale(scaling);
 
+        if (settings.expose_blending_mask) {
+          patch->expose_blending_mask();
+        } else if (settings.expose_validity_mask) {
+          patch->expose_validity_mask();
+        }
+
         expected_occupied_area = patch->get_width() * patch->get_height();
         occupied_area = texture_atlas->insert(patch);
       }
@@ -267,7 +273,7 @@ void generate_capped_texture_atlas(
                 << scaling * 100.0 << "% scaling on iteration "
                 << iterations << std::endl;
 
-      texture_atlas->finalize();
+      texture_atlas->finalize(settings);
       texture_atlases->push_back(texture_atlas);
       break;
     } else {
@@ -333,6 +339,13 @@ void generate_texture_atlases(
         for (auto it = texture_patches.begin(); it != texture_patches.end();) {
           std::size_t done_patches = total_num_patches - remaining_patches;
 
+          //  These options are mutually exclusive.
+          if (settings.expose_blending_mask) {
+            (*it)->expose_blending_mask();
+          } else if (settings.expose_validity_mask) {
+            (*it)->expose_validity_mask();
+          }
+
           if (texture_atlas->insert(*it)) {
             it = texture_patches.erase(it);
             remaining_patches -= 1;
@@ -342,7 +355,7 @@ void generate_texture_atlases(
         }
 
         #pragma omp task
-        texture_atlas->finalize();
+        texture_atlas->finalize(settings);
         texture_atlases->push_back(texture_atlas);
       }
 

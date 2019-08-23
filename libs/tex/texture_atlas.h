@@ -18,6 +18,7 @@
 #include <util/exception.h>
 
 #include "rectangular_bin.h"
+#include "settings.h"
 #include "texture_patch.h"
 #include "tri.h"
 
@@ -45,7 +46,7 @@ private:
 
   RectangularBin::Ptr bin;
 
-  void apply_edge_padding();
+  void apply_edge_padding(tex::Settings const& settings);
   void merge_texcoords();
 
 public:
@@ -60,7 +61,7 @@ public:
 
   uint insert(TexturePatch::Ptr texture_patch);
 
-  void finalize();
+  void finalize(tex::Settings const& settings);
 };
 
 /**

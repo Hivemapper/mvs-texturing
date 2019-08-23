@@ -122,6 +122,9 @@ public:
       const std::vector<math::Vec3f>& vertices,
       const std::vector<uint>& mesh_faces) const;
   double compute_pixel_area() const;
+  
+  void expose_blending_mask();
+  void expose_validity_mask();
 };
 
 inline TexturePatch::Ptr TexturePatch::create(
