@@ -144,11 +144,21 @@ uint TextureAtlas::insert(TexturePatch::Ptr texture_patch) {
   aforementioned termination conditions will not cause a conflict.
 */
 void TextureAtlas::apply_edge_padding(tex::Settings const& settings) {
-  assert(image != NULL);
-  assert(validity_mask != NULL);
+  assert(!!image);
+  assert(!!validity_mask);
+
+  if (settings.dilate_padding_pixels) {
+    std::cout << "Applying edge padding" << std::endl;
+  } else {
+    std::cout << "Not applying edge padding" << std::endl;
+    return;
+  }
 
   const int width = image->width();
   const int height = image->height();
+
+  assert(width == validity_mask->width());
+  assert(height == validity_mask->height());
 
   math::Matrix<float, 3, 3> gauss {};
 
@@ -188,13 +198,6 @@ void TextureAtlas::apply_edge_padding(tex::Settings const& settings) {
     }
   }
   
-  if (!settings.dilate_padding_pixels) {
-    std::cout << "Not applying edge padding" << std::endl;
-    return;
-  }
-  
-  std::cout << "Applying edge padding now" << std::endl;
-
   mve::ByteImage::Ptr new_validity_mask = validity_mask->duplicate();
 
   /* Iteratively dilate border pixels until padding constants are reached. */

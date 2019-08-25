@@ -474,13 +474,16 @@ void TexturePatch::rescale(double ratio) {
 
   //  We recalculate the validity_mask and blending_mask from scratch to avoid
   //  rounding errors of all kinds.
-  const float k_sqrt_2 = std::sqrt(2);
-
   validity_mask = mve::ByteImage::create(get_width(), get_height(), 1);
   blending_mask = mve::ByteImage::create(get_width(), get_height(), 1);
 
-  validity_mask->fill(0);
-  blending_mask->fill(0);
+  if (!!validity_mask) {
+    validity_mask->fill(0);
+  }
+  
+  if (!!blending_mask) {
+    blending_mask->fill(0);
+  }
 
   if (texcoords.size() >= 3) {
     for (std::size_t i = 0; i < texcoords.size(); i += 3) {
@@ -528,14 +531,20 @@ void TexturePatch::rescale(double ratio) {
       HM_ASSERT(max_x < get_width());
       HM_ASSERT(0 <= min_y);
       HM_ASSERT(max_y < get_height());
-      HM_ASSERT(max_x < validity_mask->width());
-      HM_ASSERT(max_y < validity_mask->height());
-      HM_ASSERT(max_x < blending_mask->width());
-      HM_ASSERT(max_y < blending_mask->height());
-      HM_ASSERT(get_width() == validity_mask->width());
-      HM_ASSERT(get_height() == validity_mask->height());
-      HM_ASSERT(get_width() == blending_mask->width());
-      HM_ASSERT(get_height() == blending_mask->height());
+
+      if (!!blending_mask) {
+        HM_ASSERT(max_x < blending_mask->width());
+        HM_ASSERT(max_y < blending_mask->height());
+        HM_ASSERT(get_width() == blending_mask->width());
+        HM_ASSERT(get_height() == blending_mask->height());
+      }
+
+      if (!!validity_mask) {
+        HM_ASSERT(max_x < validity_mask->width());
+        HM_ASSERT(max_y < validity_mask->height());
+        HM_ASSERT(get_width() == validity_mask->width());
+        HM_ASSERT(get_height() == validity_mask->height());
+      }
 
       for (int y = min_y; y < max_y; ++y) {
         for (int x = min_x; x < max_x; ++x) {
@@ -548,10 +557,15 @@ void TexturePatch::rescale(double ratio) {
             HM_ASSERT(x < new_width - texture_patch_border);
             HM_ASSERT(y < new_height - texture_patch_border);
 
-            validity_mask->at(x, y, 0) = 255;
-            blending_mask->at(x, y, 0) = 255;
+            if (!!validity_mask) {
+              validity_mask->at(x, y, 0) = 255;
+            }
+            
+            if (!!blending_mask) {
+              blending_mask->at(x, y, 0) = 255;
+            }
           } else {
-            if (validity_mask->at(x, y, 0) == 255) {
+            if (!validity_mask || validity_mask->at(x, y, 0) == 255) {
               continue;
             }
 
@@ -567,8 +581,13 @@ void TexturePatch::rescale(double ratio) {
               continue;
             }
 
-            validity_mask->at(x, y, 0) = 255;
-            blending_mask->at(x, y, 0) = 64;
+            if (!!validity_mask) {
+              validity_mask->at(x, y, 0) = 255;
+            }
+            
+            if (!!blending_mask) {
+              blending_mask->at(x, y, 0) = 64;
+            }
           }
         }
       }
