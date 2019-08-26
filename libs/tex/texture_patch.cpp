@@ -195,24 +195,15 @@ math::Vec2f scale_texcoord(
   //  suspect it presents a problem on chart boundaries since the charts may
   //  be rotated with respect to each other, rendering this simple tex coord
   //  approach useless.
-//  if (x_prop > 0.999 && y_prop > 0.999) {
-//    nrv = {x / (w1 + 2), y / (h1 + 2)};
-//  } else if (x_prop > 0.999) {
-//    nrv = {x / (w1 + 2), (y + 1.0f) / (h1 + 2)};
-//  } else if (y_prop > 0.999) {
-//    nrv = {(x + 1.0f) / (w1 + 2), y / (h1 + 2)};
-//  } else {
-//    nrv = {(x + 1.0f) / (w1 + 2), (y + 1.0f) / (h1 + 2)};
-//  }
-//  if (x_prop > 0.999 && y_prop > 0.999) {
+  if (x_prop > 0.999 && y_prop > 0.999) {
     nrv = {x, y};
-//  } else if (x_prop > 0.999) {
-//    nrv = {x, y + 1.0f};
-//  } else if (y_prop > 0.999) {
-//    nrv = {x + 1.0f, y};
-//  } else {
-//    nrv = {x + 1.0f, y + 1.0f};
-//  }
+  } else if (x_prop > 0.999) {
+    nrv = {x, y + texture_patch_border};
+  } else if (y_prop > 0.999) {
+    nrv = {x + texture_patch_border, y};
+  } else {
+    nrv = {x + texture_patch_border, y + texture_patch_border};
+  }
 
   HM_ASSERT(nrv[0] >= texture_patch_border);
   HM_ASSERT(nrv[0] <= new_width - texture_patch_border);
@@ -262,10 +253,10 @@ mve::FloatImage::Ptr rescale_area(
     they may end up too faint, in this case tending towards black. We account
     for the adjustment below.
   
-    Additionally, we inset the extents of the new rect so that there will be a
-    reserved border around the interior of the chart. This is to accommodate
-    the triangle masks, which assume they occupy a one-pixel border around a
-    given triangle.
+//    Additionally, we inset the extents of the new rect so that there will be a
+//    reserved border around the interior of the chart. This is to accommodate
+//    the triangle masks, which assume they occupy a one-pixel border around a
+//    given triangle.
   
     FIXME - bitweeder
     Note that the approach taken here is naive and branch-heavy. A better
@@ -274,10 +265,10 @@ mve::FloatImage::Ptr rescale_area(
   */
   const auto old_width = input_image->width();
   const auto old_height = input_image->height();
-  const auto v_old_width = input_image->width() + 2;
-  const auto v_old_height = input_image->height() + 2;
-  const auto v_new_width = new_width - 2;
-  const auto v_new_height = new_height - 2;
+  const auto v_old_width = input_image->width() + 2 * texture_patch_border;
+  const auto v_old_height = input_image->height() + 2 * texture_patch_border;
+  const auto v_new_width = new_width;// - 2 * texture_patch_border;
+  const auto v_new_height = new_height;// - 2 * texture_patch_border;
   const float x_scale = v_new_width / static_cast<float>(v_old_width);
   const float y_scale = v_new_height / static_cast<float>(v_old_height);
   const float scale = x_scale * y_scale;
@@ -285,7 +276,7 @@ mve::FloatImage::Ptr rescale_area(
   for (int ci = 0; ci < input_image->channels(); ++ci) {
     for (int y = 0; y < v_old_height; ++y) {
       //  Keep track of where our actual y is.
-      float y_low = static_cast<float>(y) * y_scale + 1.0f;
+      float y_low = static_cast<float>(y) * y_scale;// + texture_patch_border;
       int new_y = static_cast<int>(std::floor(y_low));
 
       //  Track where we are in the fractional pixel.
@@ -293,7 +284,7 @@ mve::FloatImage::Ptr rescale_area(
 
       for (int x = 0; x < v_old_width; ++x) {
         //  Keep track of where our actual x is.
-        float x_low = static_cast<float>(x) * x_scale + 1.0f;
+        float x_low = static_cast<float>(x) * x_scale;// + texture_patch_border;
         int new_x = static_cast<int>(std::floor(x_low));
 
         //  Track where we are in the fractional pixel.
@@ -328,29 +319,29 @@ mve::FloatImage::Ptr rescale_area(
         //  still behaving as if they actually existed. The net impact is to
         //  ensure that border pixel colors are still properly normalized
         //  instead of being fragments.
-        if (0 == x) {
-          if (0 == y) {
+        if (x < texture_patch_border) {
+          if (y < texture_patch_border) {
             val = input_image->at(0, 0, ci) * scale;
-          } else if (v_old_height - 1 == y) {
-            val = input_image->at(0, v_old_height - 3, ci) * scale;
+          } else if (y >= v_old_height - texture_patch_border) {
+            val = input_image->at(0, v_old_height - (2 * texture_patch_border + 1), ci) * scale;
           } else {
-            val = input_image->at(0, y - 1, ci) * scale;
+            val = input_image->at(0, y - texture_patch_border, ci) * scale;
           }
-        } else if (v_old_width - 1 == x) {
-          if (0 == y) {
-            val = input_image->at(v_old_width - 3, 0, ci) * scale;
-          } else if (v_old_height - 1 == y) {
-            val = input_image->at(v_old_width - 3, v_old_height - 3, ci) * scale;
+        } else if (x >= v_old_width - texture_patch_border) {
+          if (y < texture_patch_border) {
+            val = input_image->at(v_old_width - (2 * texture_patch_border + 1), 0, ci) * scale;
+          } else if (y >= v_old_height - texture_patch_border) {
+            val = input_image->at(v_old_width - (2 * texture_patch_border + 1), v_old_height - (2 * texture_patch_border + 1), ci) * scale;
           } else {
-            val = input_image->at(v_old_width - 3, y - 1, ci) * scale;
+            val = input_image->at(v_old_width - (2 * texture_patch_border + 1), y - texture_patch_border, ci) * scale;
           }
         } else {
-          if (0 == y) {
-            val = input_image->at(x - 1, 0, ci) * scale;
-          } else if (v_old_height - 1 == y) {
-            val = input_image->at(x - 1, v_old_height - 3, ci) * scale;
+          if (y < texture_patch_border) {
+            val = input_image->at(x - texture_patch_border, 0, ci) * scale;
+          } else if (y >= v_old_height - texture_patch_border) {
+            val = input_image->at(x - texture_patch_border, v_old_height - (2 * texture_patch_border + 1), ci) * scale;
           } else {
-            val = input_image->at(x - 1, y - 1, ci) * scale;
+            val = input_image->at(x - texture_patch_border, y - texture_patch_border, ci) * scale;
           }
         }
 
@@ -415,8 +406,59 @@ mve::FloatImage::Ptr rescale_area(
   return out_image;
 }
 
-// Rescale a patch and underlying imagery.
+/**
+  @brief Rescale a patch and underlying imagery.
+ 
+  @details Note that the output image will be slightly larger than was actually
+  requested due to the addition of a `texture_patch_border`-wide border around
+  it, as per mvs-texturing’s expectation.
+*/
 void TexturePatch::rescale(double ratio) {
+  int old_width = get_width();
+  int old_height = get_height();
+  int new_width = std::ceil(old_width * ratio) + 2 * texture_patch_border;
+  int new_height = std::ceil(old_height * ratio) + 2 * texture_patch_border;
+
+  //  SEEME - bitweeder
+  //  It appears that there were moiré patterns being generated with the
+  //  image scaling being done originally, necessitating an image scaling
+  //  replacement function.
+//  image = mve::image::rescale<float>(image,
+//    mve::image::RescaleInterpolation::RESCALE_LINEAR, new_width, new_height);
+
+  image = rescale_area(image, new_width, new_height);
+
+  //  We recalculate the validity_mask and blending_mask from scratch to avoid
+  //  rounding errors of all kinds.
+  validity_mask = mve::ByteImage::create(get_width(), get_height(), 1);
+  blending_mask = mve::ByteImage::create(get_width(), get_height(), 1);
+
+  validity_mask->fill(0);
+  blending_mask->fill(0);
+
+  if (texcoords.size() >= 3) {
+    //  We handle these as triples in case the relative positioning turns out
+    //  to be important to avoid degeneration when applying scaling to the
+    //  triangle.
+    for (std::size_t i = 0; i < texcoords.size(); i += 3) {
+      auto& v1 = texcoords[i];
+      auto& v2 = texcoords[i + 1];
+      auto& v3 = texcoords[i + 2];
+
+      v1 = scale_texcoord(v1, old_width, old_height, new_width, new_height);
+      v2 = scale_texcoord(v2, old_width, old_height, new_width, new_height);
+      v3 = scale_texcoord(v3, old_width, old_height, new_width, new_height);
+    }
+  }
+  
+  std::vector<math::Vec3f> patch_adjust_values(
+      get_faces().size() * 3, math::Vec3f(0.0f));
+
+  adjust_colors(patch_adjust_values);
+}
+
+// Rescale a patch and underlying imagery.
+void TexturePatch::rescale_manually(double ratio) {
   int old_width = get_width();
   int old_height = get_height();
   int new_width = std::ceil(old_width * ratio);
@@ -431,65 +473,23 @@ void TexturePatch::rescale(double ratio) {
 
   image = rescale_area(image, new_width, new_height);
 
-//  float pre_min_xtc = std::numeric_limits<float>::max();
-//  float pre_max_xtc = std::numeric_limits<float>::min();
-//  float pre_min_ytc = std::numeric_limits<float>::max();
-//  float pre_max_ytc = std::numeric_limits<float>::min();
-//
-//  float post_min_xtc = std::numeric_limits<float>::max();
-//  float post_max_xtc = std::numeric_limits<float>::min();
-//  float post_min_ytc = std::numeric_limits<float>::max();
-//  float post_max_ytc = std::numeric_limits<float>::min();
-
-  for (auto&& coord : texcoords) {
-//    pre_min_xtc = std::min(pre_min_xtc, coord[0]);
-//    pre_max_xtc = std::max(pre_max_xtc, coord[0]);
-//    pre_min_ytc = std::min(pre_min_ytc, coord[1]);
-//    pre_max_ytc = std::max(pre_max_ytc, coord[1]);
-
-    //  It is CRITICAL that these texcoords line up with the rescaled image, or
-    //  else we’ll be rendering pure garbage.
-    coord = scale_texcoord(coord, old_width, old_height, new_width, new_height);
-    
-//    post_min_xtc = std::min(post_min_xtc, coord[0]);
-//    post_max_xtc = std::max(post_max_xtc, coord[0]);
-//    post_min_ytc = std::min(post_min_ytc, coord[1]);
-//    post_max_ytc = std::max(post_max_ytc, coord[1]);
-  }
-
-//  std::cout
-//    << "pre min: ("
-//    << pre_min_xtc << ", "
-//    << pre_min_ytc << "), "
-//    << "pre max: ("
-//    << pre_max_xtc << ", "
-//    << pre_max_ytc << ")\n"
-//    << "post min: ("
-//    << post_min_xtc << ", "
-//    << post_min_ytc << "), "
-//    << "post max: ("
-//    << post_max_xtc << ", "
-//    << post_max_ytc << ")\n"
-//    << std::endl;
-
   //  We recalculate the validity_mask and blending_mask from scratch to avoid
   //  rounding errors of all kinds.
   validity_mask = mve::ByteImage::create(get_width(), get_height(), 1);
   blending_mask = mve::ByteImage::create(get_width(), get_height(), 1);
 
-  if (!!validity_mask) {
-    validity_mask->fill(0);
-  }
-  
-  if (!!blending_mask) {
-    blending_mask->fill(0);
-  }
+  validity_mask->fill(0);
+  blending_mask->fill(0);
 
   if (texcoords.size() >= 3) {
     for (std::size_t i = 0; i < texcoords.size(); i += 3) {
-      math::Vec2f v1 = texcoords[i];
-      math::Vec2f v2 = texcoords[i + 1];
-      math::Vec2f v3 = texcoords[i + 2];
+      auto& v1 = texcoords[i];
+      auto& v2 = texcoords[i + 1];
+      auto& v3 = texcoords[i + 2];
+
+      v1 = scale_texcoord(v1, old_width, old_height, new_width, new_height);
+      v2 = scale_texcoord(v2, old_width, old_height, new_width, new_height);
+      v3 = scale_texcoord(v3, old_width, old_height, new_width, new_height);
 
       Tri tri {v1, v2, v3};
       float area = tri.get_area();
@@ -532,19 +532,15 @@ void TexturePatch::rescale(double ratio) {
       HM_ASSERT(0 <= min_y);
       HM_ASSERT(max_y < get_height());
 
-      if (!!blending_mask) {
-        HM_ASSERT(max_x < blending_mask->width());
-        HM_ASSERT(max_y < blending_mask->height());
-        HM_ASSERT(get_width() == blending_mask->width());
-        HM_ASSERT(get_height() == blending_mask->height());
-      }
+      HM_ASSERT(max_x < blending_mask->width());
+      HM_ASSERT(max_y < blending_mask->height());
+      HM_ASSERT(get_width() == blending_mask->width());
+      HM_ASSERT(get_height() == blending_mask->height());
 
-      if (!!validity_mask) {
-        HM_ASSERT(max_x < validity_mask->width());
-        HM_ASSERT(max_y < validity_mask->height());
-        HM_ASSERT(get_width() == validity_mask->width());
-        HM_ASSERT(get_height() == validity_mask->height());
-      }
+      HM_ASSERT(max_x < validity_mask->width());
+      HM_ASSERT(max_y < validity_mask->height());
+      HM_ASSERT(get_width() == validity_mask->width());
+      HM_ASSERT(get_height() == validity_mask->height());
 
       for (int y = min_y; y < max_y; ++y) {
         for (int x = min_x; x < max_x; ++x) {
@@ -557,13 +553,8 @@ void TexturePatch::rescale(double ratio) {
             HM_ASSERT(x < new_width - texture_patch_border);
             HM_ASSERT(y < new_height - texture_patch_border);
 
-            if (!!validity_mask) {
-              validity_mask->at(x, y, 0) = 255;
-            }
-            
-            if (!!blending_mask) {
-              blending_mask->at(x, y, 0) = 255;
-            }
+            validity_mask->at(x, y, 0) = 255;
+            blending_mask->at(x, y, 0) = 255;
           } else {
             if (!validity_mask || validity_mask->at(x, y, 0) == 255) {
               continue;
@@ -581,13 +572,8 @@ void TexturePatch::rescale(double ratio) {
               continue;
             }
 
-            if (!!validity_mask) {
-              validity_mask->at(x, y, 0) = 255;
-            }
-            
-            if (!!blending_mask) {
-              blending_mask->at(x, y, 0) = 64;
-            }
+            validity_mask->at(x, y, 0) = 255;
+            blending_mask->at(x, y, 0) = 64;
           }
         }
       }
@@ -599,27 +585,47 @@ void TexturePatch::rescale(double ratio) {
 
 void TexturePatch::expose_blending_mask() {
   if (!!blending_mask) {
-  //  for (int ci = 0; ci < image->channels(); ++ci) {
-      for (int y = 0; y < image->height(); ++y) {
-        for (int x = 0; x < image->width(); ++x) {
-          image->at(x, y, 0) = image->at(x, y, 0) / 2.0f
-              + static_cast<float>(blending_mask->at(x, y, 0)) / 255.0f / 2.0f;
+    for (int y = 0; y < image->height(); ++y) {
+      for (int x = 0; x < image->width(); ++x) {
+        image->at(x, y, 0) = image->at(x, y, 0) / 2.0f
+            + static_cast<float>(blending_mask->at(x, y, 0)) / 255.0f / 2.0f;
+        
+        if ((0 == x) or (0 == y) or (image->width() - 1 == x) or (image->height() - 1 == y)) {
+          image->at(x, y, 0) = image->at(x, y, 0) / 2.0f + 0.5;
+          image->at(x, y, 1) = image->at(x, y, 1) / 2.0f + 0.5;
+          image->at(x, y, 2) = image->at(x, y, 2) / 2.0f + 0.5;
         }
       }
-  //  }
+    }
+  }
+
+  for (auto const& tc : texcoords) {
+    image->at(tc[0], tc[1], 0) = 1.0;
+    image->at(tc[0], tc[1], 1) = 1.0;
+    image->at(tc[0], tc[1], 2) = 1.0;
   }
 }
 
 void TexturePatch::expose_validity_mask() {
   if (!!validity_mask) {
-  //  for (int ci = 0; ci < image->channels(); ++ci) {
-      for (int y = 0; y < image->height(); ++y) {
-        for (int x = 0; x < image->width(); ++x) {
-          image->at(x, y, 0) = image->at(x, y, 0) / 2.0f
-              + static_cast<float>(validity_mask->at(x, y, 0)) / 255.0f / 2.0f;
+    for (int y = 0; y < image->height(); ++y) {
+      for (int x = 0; x < image->width(); ++x) {
+        image->at(x, y, 0) = image->at(x, y, 0) / 2.0f
+            + static_cast<float>(validity_mask->at(x, y, 0)) / 255.0f / 2.0f;
+
+        if ((0 == x) or (0 == y) or (image->width() - 1 == x) or (image->height() - 1 == y)) {
+          image->at(x, y, 0) = image->at(x, y, 0) / 2.0f + 0.5;
+          image->at(x, y, 1) = image->at(x, y, 1) / 2.0f + 0.5;
+          image->at(x, y, 2) = image->at(x, y, 2) / 2.0f + 0.5;
         }
       }
-  //  }
+    }
+  }
+  
+  for (auto const& tc : texcoords) {
+    image->at(tc[0], tc[1], 0) = 1.0;
+    image->at(tc[0], tc[1], 1) = 1.0;
+    image->at(tc[0], tc[1], 2) = 1.0;
   }
 }
 
