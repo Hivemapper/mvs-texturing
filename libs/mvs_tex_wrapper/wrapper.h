@@ -18,6 +18,12 @@ struct TextureSettings {
   bool do_local_seam_leveling = true;
   bool do_hole_filling = true;
   bool do_keep_unseen_faces = true;
+  
+  bool do_dilate_padding_pixels = true;
+  bool do_highlight_padding_pixels = false;
+  bool do_expose_blending_mask = false;
+  bool do_expose_validity_mask = false;
+  bool do_scale_if_needed = false;
 };
 
 void generate_vertex_reindex(

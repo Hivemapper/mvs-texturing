@@ -68,6 +68,7 @@ public:
   TexturePatch::Ptr duplicate();
 
   void rescale(double ratio);
+  void rescale_manually(double ratio);
 
   /** Adjust the image colors and update validity mask. */
   void adjust_colors(
@@ -122,6 +123,9 @@ public:
       const std::vector<math::Vec3f>& vertices,
       const std::vector<uint>& mesh_faces) const;
   double compute_pixel_area() const;
+  
+  void expose_blending_mask();
+  void expose_validity_mask();
 };
 
 inline TexturePatch::Ptr TexturePatch::create(

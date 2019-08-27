@@ -81,6 +81,12 @@ TexturePatchCandidate generate_candidate(
     TextureView const& texture_view,
     std::vector<std::size_t> const& faces,
     mve::TriangleMesh::ConstPtr mesh,
+    Settings const& settings);
+TexturePatchCandidate generate_candidate(
+    int label,
+    TextureView const& texture_view,
+    std::vector<std::size_t> const& faces,
+    mve::TriangleMesh::ConstPtr mesh,
     Settings const& settings) {
   mve::ByteImage::Ptr view_image = texture_view.get_image();
   int min_x = view_image->width(), min_y = view_image->height();
@@ -126,10 +132,14 @@ TexturePatchCandidate generate_candidate(
     texcoords[i] = texcoords[i] - min;
   }
 
-  mve::ByteImage::Ptr byte_image;
-  byte_image = mve::image::crop(
+  mve::ByteImage::Ptr byte_image = mve::image::crop(
       view_image, width, height, min_x, min_y, *math::Vec3uc(255, 0, 255));
+
   mve::FloatImage::Ptr image = mve::image::byte_to_float_image(byte_image);
+
+  //  TESTME - bitweeder
+  //  Uncomment to see an empty texture with border padding.
+//  image->fill(1.0);
 
   if (settings.tone_mapping != TONE_MAPPING_NONE) {
     mve::image::gamma_correct(image, 2.2f);
@@ -138,9 +148,17 @@ TexturePatchCandidate generate_candidate(
   TexturePatchCandidate texture_patch_candidate = {
       Rect<int>(min_x, min_y, max_x, max_y),
       TexturePatch::create(label, faces, texcoords, image)};
+
   return texture_patch_candidate;
 }
 
+bool fill_hole(
+    std::vector<std::size_t> const& hole,
+    UniGraph const& graph,
+    mve::TriangleMesh::ConstPtr mesh,
+    mve::MeshInfo const& mesh_info,
+    std::vector<std::vector<VertexProjectionInfo>>* vertex_projection_infos,
+    std::vector<TexturePatch::Ptr>* texture_patches);
 bool fill_hole(
     std::vector<std::size_t> const& hole,
     UniGraph const& graph,

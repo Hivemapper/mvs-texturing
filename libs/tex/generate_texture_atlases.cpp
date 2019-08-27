@@ -219,84 +219,128 @@ void generate_capped_texture_atlas(
     auto texture_atlas = TextureAtlas::create(atlas_size);
     bool atlas_complete = true;
     uint actual_occupied_area = 0;
+    auto min_tri_area = std::numeric_limits<float>::max();
+    auto max_tri_area = std::numeric_limits<float>::min();
 
     std::cout << "atlas_page_ests: {" << atlas_page_ests.edge_length
         << ", " << atlas_page_ests.max_chart_width
         << ", " << atlas_page_ests.max_chart_height
         << ", " << atlas_page_ests.occupied_area
-        << "}, " << std::flush;
-
-    std::cout << "atlas_size: " << atlas_size << std::endl;
+        << "}, " << "atlas_size: " << atlas_size << std::endl;
 
     ++iterations;
 
     uint expected_occupied_area = 0;
+    
     std::size_t i = 0;
     
-    for (; i < texture_patches.size(); ++i) {
-//      std::cout << "Attempting patch "
-//                << i << " of " << texture_patches.size() << std::endl;
+    if (scaling == 1.0) {
+      for (; i < texture_patches.size(); ++i) {
+        auto& tc = texture_patches[i]->get_texcoords();
+        Tri tri {tc[0], tc[1], tc[2]};
+        auto area = tri.get_area();
+        min_tri_area = std::min(min_tri_area, area);
+        max_tri_area = std::max(max_tri_area, area);
 
-      uint occupied_area = 0;
-      
-      if (scaling == 1.0) {
         expected_occupied_area =
             texture_patches[i]->get_width() * texture_patches[i]->get_height();
 
-        occupied_area = texture_atlas->insert(texture_patches[i]);
-      } else {
+        auto occupied_area = texture_atlas->insert(texture_patches[i]);
+
+        if (0 == occupied_area) {
+          atlas_complete = false;
+          break;
+        }
+        
+        actual_occupied_area += occupied_area;
+      }
+    } else {
+      for (; i < texture_patches.size(); ++i) {
         //  Generate a deep copy of the original patch.
         auto patch = TexturePatch::create(texture_patches[i]);
 
+//        patch->rescale_manually(scaling);
         patch->rescale(scaling);
 
-        expected_occupied_area = patch->get_width() * patch->get_height();
-        occupied_area = texture_atlas->insert(patch);
-      }
+        auto& tc = patch->get_texcoords();
+        Tri tri {tc[0], tc[1], tc[2]};
+        auto area = tri.get_area();
+        min_tri_area = std::min(min_tri_area, area);
+        max_tri_area = std::max(max_tri_area, area);
 
-      if (0 == occupied_area) {
-        atlas_complete = false;
-        break;
-      } else {
+        if (settings.expose_blending_mask) {
+          patch->expose_blending_mask();
+        } else if (settings.expose_validity_mask) {
+          patch->expose_validity_mask();
+        }
+
+        expected_occupied_area =
+            patch->get_width() * patch->get_height();
+        
+        auto occupied_area = texture_atlas->insert(patch);
+
+        if (0 == occupied_area) {
+          atlas_complete = false;
+          break;
+        }
+        
         actual_occupied_area += occupied_area;
       }
     }
+    
+    std::cout
+        << "smallest triangle: " << min_tri_area
+        << ", largest triangle: " << max_tri_area
+        << "\n" << std::endl;
 
     if (atlas_complete) {
-      std::cout << "Completed atlas page with " << i << " patches at "
-                << scaling * 100.0 << "% scaling on iteration "
-                << iterations << std::endl;
+      std::cout
+          << "Completed atlas page with " << i << " patches at "
+          << scaling * 100.0 << "% scaling on iteration "
+          << iterations << std::endl;
 
-      texture_atlas->finalize();
+      texture_atlas->finalize(settings);
       texture_atlases->push_back(texture_atlas);
       break;
     } else {
-      std::cout << "Unable to complete atlas page with "
-                << scaling * 100.0 << "% scaling (area: "
-                << actual_occupied_area << "/"
-                << atlas_page_ests.occupied_area << ", patches: " << i
-                << " of " << texture_patches.size() << ")"
-                << " on iteration " << iterations << std::endl;
+      std::cout
+          << "Unable to complete atlas page with "
+          << scaling * 100.0 << "% scaling (area: "
+          << actual_occupied_area << "/"
+          << atlas_page_ests.occupied_area << ", patches: " << i
+          << " of " << texture_patches.size() << ")"
+          << " on iteration " << iterations << std::endl;
 
-      //  SEEME - bitweeder
-      //  Rather than base our scaling heuristic on the area occupied thus
-      //  far, we prefer to use the area that -would- have been occupied had
-      //  our last insertion completed successfully; this takes advantage of
-      //  the fact that we sorted our inputs by area in advance and is intended
-      //  to prevent over-minimization. It does, bowever, create the potential
-      //  for a death spiral in a pathological edge case; the fix would be to
-      //  “over-correct” after some number of failed iterations. Even with this
-      //  fix, however, it’s still possible to fail if our charts are shaped
-      //  awkwardly enough relative to the remaining binnable area in our
-      //  texture, which would necessitate an even more radical solution.
-      //  Finally, if the maximum allowable texture size is simply too small,
-      //  we’ll effectively fail no matter what we do.
+      /*
+        SEEME - bitweeder
+        Rather than base our scaling heuristic on the area occupied thus
+        far, we prefer to use the area that -would- have been occupied had
+        our last insertion completed successfully; this takes advantage of
+        the fact that we sorted our inputs by area in advance and is intended
+        to prevent over-minimization. It does, bowever, create the potential
+        for a death spiral in a pathological edge case; the fix would be to
+        “over-correct” after some number of failed iterations. Even with this
+        fix, however, it’s still possible to fail if our charts are shaped
+        awkwardly enough relative to the remaining binnable area in our
+        texture, which would necessitate an even more radical solution.
+        Finally, if the maximum allowable texture size is simply too small,
+        we’ll effectively fail no matter what we do.
+       
+        FIXME - bitweeder
+        In practice, we ocasionally get into a pathological state where the
+        scaling is oscillating between two values. The solution is likely to
+        involve forbidding scaling direction changes when iterating.
+      */
       if ((actual_occupied_area + expected_occupied_area)
           < atlas_page_ests.occupied_area) {
+        std::cout << "scaling branch 1" << std::endl;
+
         scaling *= std::sqrt(
             static_cast<double>(actual_occupied_area + expected_occupied_area)
             / static_cast<double>(atlas_page_ests.occupied_area));
       } else {
+        std::cout << "scaling branch 2" << std::endl;
+
         scaling *= std::sqrt((static_cast<double>(actual_occupied_area)
             / static_cast<double>(atlas_page_ests.occupied_area)));
       }
@@ -333,6 +377,13 @@ void generate_texture_atlases(
         for (auto it = texture_patches.begin(); it != texture_patches.end();) {
           std::size_t done_patches = total_num_patches - remaining_patches;
 
+          //  These options are mutually exclusive.
+          if (settings.expose_blending_mask) {
+            (*it)->expose_blending_mask();
+          } else if (settings.expose_validity_mask) {
+            (*it)->expose_validity_mask();
+          }
+
           if (texture_atlas->insert(*it)) {
             it = texture_patches.erase(it);
             remaining_patches -= 1;
@@ -342,7 +393,7 @@ void generate_texture_atlases(
         }
 
         #pragma omp task
-        texture_atlas->finalize();
+        texture_atlas->finalize(settings);
         texture_atlases->push_back(texture_atlas);
       }
 
