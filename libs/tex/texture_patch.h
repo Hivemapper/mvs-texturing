@@ -68,8 +68,7 @@ public:
   TexturePatch::Ptr duplicate();
 
   void rescale(double ratio);
-
-  void TexturePatch::regenerate_masks();
+  void regenerate_masks();
 
   /** Adjust the image colors and update validity mask. */
   void adjust_colors(
