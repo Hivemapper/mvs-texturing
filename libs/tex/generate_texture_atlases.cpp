@@ -327,7 +327,7 @@ void generate_capped_texture_atlas(
         we’ll effectively fail no matter what we do.
        
         FIXME - bitweeder
-        In practice, we ocasionally get into a pathological state where the
+        In practice, we occasionally get into a pathological state where the
         scaling is oscillating between two values. The solution is likely to
         involve forbidding scaling direction changes when iterating.
       */

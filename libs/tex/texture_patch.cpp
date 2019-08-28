@@ -433,6 +433,7 @@ void TexturePatch::rescale(double ratio) {
   validity_mask = mve::ByteImage::create(get_width(), get_height(), 1);
   blending_mask = mve::ByteImage::create(get_width(), get_height(), 1);
 
+  //  Strictly speaking, these calls end up being redundant.
   validity_mask->fill(0);
   blending_mask->fill(0);
 
@@ -455,132 +456,6 @@ void TexturePatch::rescale(double ratio) {
       get_faces().size() * 3, math::Vec3f(0.0f));
 
   adjust_colors(patch_adjust_values);
-}
-
-// Rescale a patch and underlying imagery.
-void TexturePatch::rescale_manually(double ratio) {
-  int old_width = get_width();
-  int old_height = get_height();
-  int new_width = std::ceil(old_width * ratio);
-  int new_height = std::ceil(old_height * ratio);
-
-  //  SEEME - bitweeder
-  //  It appears that there were moiré patterns being generated with the
-  //  image scaling being done originally, necessitating an image scaling
-  //  replacement function.
-//  image = mve::image::rescale<float>(image,
-//    mve::image::RescaleInterpolation::RESCALE_LINEAR, new_width, new_height);
-
-  image = rescale_area(image, new_width, new_height);
-
-  //  We recalculate the validity_mask and blending_mask from scratch to avoid
-  //  rounding errors of all kinds.
-  validity_mask = mve::ByteImage::create(get_width(), get_height(), 1);
-  blending_mask = mve::ByteImage::create(get_width(), get_height(), 1);
-
-  validity_mask->fill(0);
-  blending_mask->fill(0);
-
-  if (texcoords.size() >= 3) {
-    for (std::size_t i = 0; i < texcoords.size(); i += 3) {
-      auto& v1 = texcoords[i];
-      auto& v2 = texcoords[i + 1];
-      auto& v3 = texcoords[i + 2];
-
-      v1 = scale_texcoord(v1, old_width, old_height, new_width, new_height);
-      v2 = scale_texcoord(v2, old_width, old_height, new_width, new_height);
-      v3 = scale_texcoord(v3, old_width, old_height, new_width, new_height);
-
-      Tri tri {v1, v2, v3};
-      float area = tri.get_area();
-
-      //  Ignore degenerate triangles.
-      if (area < std::numeric_limits<float>::epsilon()) continue;
-
-      Rect<float> aabb = tri.get_aabb();
-      
-      int const min_x = static_cast<int>(std::floor(aabb.min_x)) - texture_patch_border;
-      int const min_y = static_cast<int>(std::floor(aabb.min_y)) - texture_patch_border;
-      int const max_x = static_cast<int>(std::floor(aabb.max_x)) + texture_patch_border;
-      int const max_y = static_cast<int>(std::floor(aabb.max_y)) + texture_patch_border;
-
-      #define HM_ASSERT(test_) \
-        if (!(test_)) {\
-          std::cout << "failed: " << #test_ << std::endl; \
-          std::cout \
-            << "texcoords: (" \
-            << texcoords[i][0] << ", " \
-            << texcoords[i][1] << "), (" \
-            << texcoords[i+1][0] << ", " \
-            << texcoords[i+1][1] << "), (" \
-            << texcoords[i+2][0] << ", " \
-            << texcoords[i+2][1] << ")\n" \
-            << "old extents: (" \
-            << old_width << ", " \
-            << old_height << "), " \
-            << "new extents: (" \
-            << new_width << ", " \
-            << new_height << ")/n" \
-            << "min: (" << min_x << ", " << min_y << "), " \
-            << "max: (" << max_x << ", " << max_y << ")\n" \
-            << std::endl; \
-            assert(test_); \
-        }
-
-      HM_ASSERT(0 <= min_x);
-      HM_ASSERT(max_x < get_width());
-      HM_ASSERT(0 <= min_y);
-      HM_ASSERT(max_y < get_height());
-
-      HM_ASSERT(max_x < blending_mask->width());
-      HM_ASSERT(max_y < blending_mask->height());
-      HM_ASSERT(get_width() == blending_mask->width());
-      HM_ASSERT(get_height() == blending_mask->height());
-
-      HM_ASSERT(max_x < validity_mask->width());
-      HM_ASSERT(max_y < validity_mask->height());
-      HM_ASSERT(get_width() == validity_mask->width());
-      HM_ASSERT(get_height() == validity_mask->height());
-
-      for (int y = min_y; y < max_y; ++y) {
-        for (int x = min_x; x < max_x; ++x) {
-          math::Vec3f bcoords = tri.get_barycentric_coords(x, y);
-          bool inside = bcoords.minimum() >= 0.0f;
-          
-          if (inside) {
-            HM_ASSERT(x >= texture_patch_border);
-            HM_ASSERT(y >= texture_patch_border);
-            HM_ASSERT(x < new_width - texture_patch_border);
-            HM_ASSERT(y < new_height - texture_patch_border);
-
-            validity_mask->at(x, y, 0) = 255;
-            blending_mask->at(x, y, 0) = 255;
-          } else {
-            if (!validity_mask || validity_mask->at(x, y, 0) == 255) {
-              continue;
-            }
-
-            /*
-              Check whether the pixels distance from the triangle is more than
-              one pixel.
-            */
-            float ha = 2.0f * -bcoords[0] * area / (v2 - v3).square_norm();
-            float hb = 2.0f * -bcoords[1] * area / (v1 - v3).square_norm();
-            float hc = 2.0f * -bcoords[2] * area / (v1 - v2).square_norm();
-
-            if (ha > 2.0f || hb > 2.0f || hc > 2.0f) {
-              continue;
-            }
-
-            validity_mask->at(x, y, 0) = 255;
-            blending_mask->at(x, y, 0) = 64;
-          }
-        }
-      }
-      
-      #undef HM_ASSERT
-    }
-  }
 }
 
 void TexturePatch::expose_blending_mask() {
@@ -632,43 +507,45 @@ void TexturePatch::expose_validity_mask() {
 void TexturePatch::adjust_colors(
     std::vector<math::Vec3f> const& adjust_values,
     int num_channels) {
-  assert(blending_mask != nullptr);
+  regenerate_masks();
 
+  if (texcoords.size() < 3) {
+    return;
+  }
+  
   const float k_sqrt_2 = std::sqrt(2);
-
-  validity_mask->fill(0);
 
   mve::FloatImage::Ptr iadjust_values =
       mve::FloatImage::create(get_width(), get_height(), num_channels);
+
   for (std::size_t i = 0; i < texcoords.size(); i += 3) {
-    math::Vec2f v1 = texcoords[i];
-    math::Vec2f v2 = texcoords[i + 1];
-    math::Vec2f v3 = texcoords[i + 2];
+    auto const& v1 = texcoords[i];
+    auto const& v2 = texcoords[i + 1];
+    auto const& v3 = texcoords[i + 2];
+    Tri tri {v1, v2, v3};
+    auto area = tri.get_area();
 
-    Tri tri(v1, v2, v3);
-
-    float area = tri.get_area();
-    if (area < std::numeric_limits<float>::epsilon())
+    if (area < std::numeric_limits<float>::epsilon()) {
       continue;
+    }
 
-    Rect<float> aabb = tri.get_aabb();
-    int const min_x =
-        static_cast<int>(std::floor(aabb.min_x)) - texture_patch_border;
-    int const min_y =
-        static_cast<int>(std::floor(aabb.min_y)) - texture_patch_border;
-    int const max_x =
-        static_cast<int>(std::ceil(aabb.max_x)) + texture_patch_border;
-    int const max_y =
-        static_cast<int>(std::ceil(aabb.max_y)) + texture_patch_border;
+    auto aabb = tri.get_aabb();
+    int const min_x = static_cast<int>(std::floor(aabb.min_x)) - texture_patch_border;
+    int const min_y = static_cast<int>(std::floor(aabb.min_y)) - texture_patch_border;
+    int const max_x = static_cast<int>(std::ceil(aabb.max_x)) + texture_patch_border;
+    int const max_y = static_cast<int>(std::ceil(aabb.max_y)) + texture_patch_border;
+
     assert(0 <= min_x && max_x <= get_width());
     assert(0 <= min_y && max_y <= get_height());
 
     for (int y = min_y; y < max_y; ++y) {
       for (int x = min_x; x < max_x; ++x) {
-        math::Vec3f bcoords = tri.get_barycentric_coords(x, y);
+        auto bcoords = tri.get_barycentric_coords(x, y);
         bool inside = bcoords.minimum() >= 0.0f;
+
         if (inside) {
           assert(x != 0 && y != 0);
+
           for (int c = 0; c < num_channels; ++c) {
             iadjust_values->at(x, y, c) = math::interpolate(
                 adjust_values[i][c],
@@ -678,20 +555,21 @@ void TexturePatch::adjust_colors(
                 bcoords[1],
                 bcoords[2]);
           }
-          validity_mask->at(x, y, 0) = 255;
-          blending_mask->at(x, y, 0) = 255;
         } else {
-          if (validity_mask->at(x, y, 0) == 255)
+          if (validity_mask->at(x, y, 0) == 255) {
             continue;
+          }
 
-          /* Check whether the pixels distance from the triangle is more than
-           * one pixel. */
+          //  Check whether the pixel’s distance from the triangle is more than
+          //  one pixel.
           float ha = 2.0f * -bcoords[0] * area / (v2 - v3).norm();
           float hb = 2.0f * -bcoords[1] * area / (v1 - v3).norm();
           float hc = 2.0f * -bcoords[2] * area / (v1 - v2).norm();
 
-          if (ha > k_sqrt_2 || hb > k_sqrt_2 || hc > k_sqrt_2)
+          if (ha > k_sqrt_2 || hb > k_sqrt_2 || hc > k_sqrt_2) {
             continue;
+          }
+          
           for (int c = 0; c < num_channels; ++c) {
             iadjust_values->at(x, y, c) = math::interpolate(
                 adjust_values[i][c],
@@ -701,8 +579,6 @@ void TexturePatch::adjust_colors(
                 bcoords[1],
                 bcoords[2]);
           }
-          validity_mask->at(x, y, 0) = 255;
-          blending_mask->at(x, y, 0) = 64;
         }
       }
     }
@@ -718,27 +594,93 @@ void TexturePatch::adjust_colors(
         for (int c = 0; c < num_channels; ++c) {
           image->at(i, c) = 0.0f;
         }
-        //            math::Vec3f color(0.0f, 0.0f, 0.0f);
-        //            //DEBUG math::Vec3f color(1.0f, 0.0f, 1.0f);
-        //            std::copy(color.begin(), color.end(), &image->at(i, 0));
       }
     }
   } else {
     for (int i = 0; i < image->get_pixel_amount(); ++i) {
       std::vector<float> raw_color(num_channels);
+
       if (validity_mask->at(i, 0) != 0) {
         std::copy(
             &image->at(i, 0),
             &image->at(i, 0) + num_channels,
             raw_color.begin());
+
         for (auto&& sub_color : raw_color) {
           sub_color += iadjust_values->at(i);
         }
-        math::Vec3f color = compute_object_class_color(&raw_color);
+
+        auto color = compute_object_class_color(&raw_color);
+
         std::copy(color.begin(), color.end(), &image->at(i, 0));
       } else {  // just set the rgb channels to 0
-        math::Vec3f color(0.0f, 0.0f, 0.0f);
+        math::Vec3f color {0.0f, 0.0f, 0.0f};
+
         std::copy(color.begin(), color.end(), &image->at(i, 0));
+      }
+    }
+  }
+}
+
+void TexturePatch::regenerate_masks() {
+  assert(!!blending_mask);
+  assert(!!validity_mask);
+
+  validity_mask->fill(0);
+
+  if (texcoords.size() < 3) {
+    return;
+  }
+  
+  const float k_sqrt_2 = std::sqrt(2.0f);
+
+  for (std::size_t i = 0; i < texcoords.size(); i += 3) {
+    auto const& v1 = texcoords[i];
+    auto const& v2 = texcoords[i + 1];
+    auto const& v3 = texcoords[i + 2];
+    Tri tri {v1, v2, v3};
+
+    float area = tri.get_area();
+    if (area < std::numeric_limits<float>::epsilon()) {
+      continue;
+    }
+
+    auto aabb = tri.get_aabb();
+    int const min_x = static_cast<int>(std::floor(aabb.min_x)) - texture_patch_border;
+    int const min_y = static_cast<int>(std::floor(aabb.min_y)) - texture_patch_border;
+    int const max_x = static_cast<int>(std::ceil(aabb.max_x)) + texture_patch_border;
+    int const max_y = static_cast<int>(std::ceil(aabb.max_y)) + texture_patch_border;
+
+    assert(0 <= min_x && max_x <= get_width());
+    assert(0 <= min_y && max_y <= get_height());
+
+    for (int y = min_y; y < max_y; ++y) {
+      for (int x = min_x; x < max_x; ++x) {
+        math::Vec3f bcoords = tri.get_barycentric_coords(x, y);
+        bool inside = bcoords.minimum() >= 0.0f;
+        if (inside) {
+          assert(x != 0 && y != 0);
+
+          validity_mask->at(x, y, 0) = 255;
+          blending_mask->at(x, y, 0) = 255;
+        } else {
+          if (validity_mask->at(x, y, 0) == 255) {
+            continue;
+          }
+
+          //  Check whether the pixel’s distance from the triangle is more than
+          //  one pixel.
+          float ha = 2.0f * -bcoords[0] * area / (v2 - v3).norm();
+          float hb = 2.0f * -bcoords[1] * area / (v1 - v3).norm();
+          float hc = 2.0f * -bcoords[2] * area / (v1 - v2).norm();
+
+          if (ha > k_sqrt_2 || hb > k_sqrt_2 || hc > k_sqrt_2) {
+            continue;
+          }
+          
+          validity_mask->at(x, y, 0) = 255;
+          blending_mask->at(x, y, 0) = 64;
+        }
       }
     }
   }

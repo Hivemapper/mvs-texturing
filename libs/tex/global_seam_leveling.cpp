@@ -354,7 +354,7 @@ void global_seam_leveling(
     std::vector<math::Vec3f> patch_adjust_values(
         faces.size() * 3, math::Vec3f(0.0f));
 
-    /* Only adjust texture_patches originating form input images. */
+    //  Only adjust texture_patches originating form input images.
     if (label == 0) {
       texture_patch->adjust_colors(patch_adjust_values);
       texture_patch_counter.inc();
