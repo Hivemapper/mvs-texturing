@@ -179,14 +179,16 @@ void TextureAtlas::apply_edge_padding(tex::Settings const& settings) {
   
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
-      if (validity_mask->at(x, y, 0) == 255)
+      if (validity_mask->at(x, y, 0) == 255) {
         continue;
+      }
 
       /* Check the direct neighbourhood of all invalid pixels. */
       for (int j = -1; j <= 1; ++j) {
         for (int i = -1; i <= 1; ++i) {
           int nx = x + i;
           int ny = y + j;
+          
           /* If the invalid pixel has a valid neighbour: */
           if (0 <= nx && nx < width && 0 <= ny && ny < height
               && validity_mask->at(nx, ny, 0) == 255) {
@@ -225,6 +227,7 @@ void TextureAtlas::apply_edge_padding(tex::Settings const& settings) {
             if (0 <= nx && nx < width && 0 <= ny && ny < height
                 && new_validity_mask->at(nx, ny, 0) == 255) {
               float w = gauss[(j + 1) * 3 + (i + 1)];
+              
               norm += w;
               value += (image->at(nx, ny, c) / 255.0f) * w;
             }
