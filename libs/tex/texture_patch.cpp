@@ -433,7 +433,10 @@ void TexturePatch::rescale(double ratio) {
   validity_mask = mve::ByteImage::create(get_width(), get_height(), 1);
   blending_mask = mve::ByteImage::create(get_width(), get_height(), 1);
 
-  //  Strictly speaking, these calls end up being redundant.
+  //  FIXME - bitweeder
+  //  Strictly speaking, these calls end up being redundant. Most likely, they
+  //  should remain here and the other places we set them should have
+  //  zero-fill as a precondition.
   validity_mask->fill(0);
   blending_mask->fill(0);
 
@@ -627,6 +630,7 @@ void TexturePatch::regenerate_masks() {
   assert(!!validity_mask);
 
   validity_mask->fill(0);
+  blending_mask->fill(0);
 
   if (texcoords.size() < 3) {
     return;
