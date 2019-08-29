@@ -278,9 +278,10 @@ void textureMesh(
   if (settings.global_seam_leveling) {
     //  FIXME - bitweeder
     //  Making global seam leveling work with scaling will probably require
-    //  not calling adjust_colors from within global_seam_leveling when
-    //  scaling, instead relying on the post-scaling call. regenerate_masks()
-    //  should still be called, though. This theory is untested.
+    //  calling adjust_colors from within global_seam_leveling with
+    //  only_regenerate_masks set to true when scaling, then relying on the
+    //  post-scaling call to adjust_colors to do the actual adjustment.
+    //  This theory is untested.
     
     // TODO dwh: can we get here if doing segmentation??
     std::cout << "Running global seam leveling:" << std::endl;
@@ -300,16 +301,18 @@ void textureMesh(
 
       auto texture_patch = texture_patches[i];
       
-      if (settings.scale_if_needed) {
+      //  FIXME - bitweeder
+      //  This is unused if we only care about generating masks.
+      vector<math::Vec3f> patch_adjust_values(
+          texture_patch->get_faces().size() * 3, math::Vec3f(0.0f));
+
+     if (settings.scale_if_needed) {
         //  We’ll be running adjust_colors after scaling, in this case; running
         //  it twice would lead to artifacts. We do, however, still need the
         //  masks generated for local seam leveling.
-        texture_patch->regenerate_masks();
+        texture_patch->adjust_colors(patch_adjust_values, true);
       } else {
-        vector<math::Vec3f> patch_adjust_values(
-            texture_patch->get_faces().size() * 3, math::Vec3f(0.0f));
-
-        texture_patch->adjust_colors(patch_adjust_values);
+         texture_patch->adjust_colors(patch_adjust_values);
       }
       
       texture_patch_counter.inc();
