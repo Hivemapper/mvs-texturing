@@ -325,11 +325,6 @@ void generate_capped_texture_atlas(
         texture, which would necessitate an even more radical solution.
         Finally, if the maximum allowable texture size is simply too small,
         we’ll effectively fail no matter what we do.
-       
-        FIXME - bitweeder
-        In practice, we ocasionally get into a pathological state where the
-        scaling is oscillating between two values. The solution is likely to
-        involve forbidding scaling direction changes when iterating.
       */
       if ((actual_occupied_area + expected_occupied_area)
           < atlas_page_ests.occupied_area) {
@@ -341,8 +336,9 @@ void generate_capped_texture_atlas(
       } else {
         std::cout << "scaling branch 2" << std::endl;
 
-        scaling *= std::sqrt((static_cast<double>(actual_occupied_area)
-            / static_cast<double>(atlas_page_ests.occupied_area)));
+        scaling *= std::sqrt(
+            static_cast<double>(atlas_page_ests.occupied_area
+            / static_cast<double>(actual_occupied_area + expected_occupied_area)));
       }
     }
     
