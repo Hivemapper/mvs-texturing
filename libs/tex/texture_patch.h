@@ -68,11 +68,11 @@ public:
   TexturePatch::Ptr duplicate();
 
   void rescale(double ratio);
-  void regenerate_masks();
 
   /** Adjust the image colors and update validity mask. */
   void adjust_colors(
       std::vector<math::Vec3f> const& adjust_values,
+      bool only_regenerate_masks = false,
       int num_channels = 3);
 
   math::Vec3f get_pixel_value(math::Vec2f pixel) const;

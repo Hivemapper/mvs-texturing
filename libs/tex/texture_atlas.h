@@ -97,10 +97,10 @@ inline uint compute_local_padding(
   uint size = std::max(base_width, base_height);
   uint local_padding = std::min(std::max(2u, size >> 4), max_padding);
 
-  //  FIXME - bitweeder
-  //  This is a test; it seems excessive to have a border wider than 2 pixels,
-  //  even with anisotropic/trilinear filtering. Testing a smaller value to
-  //  conserve space.
+  //  SEEME - bitweeder
+  //  It’s excessive to have a border wider than 2 pixels, even with
+  //  anisotropic/trilinear filtering. The original logic has been preserved,
+  //  but theresult is now hard-coded.
   return 2;
 //  return local_padding;
 }

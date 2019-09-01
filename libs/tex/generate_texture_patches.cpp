@@ -134,7 +134,7 @@ TexturePatchCandidate generate_candidate(
 
   mve::ByteImage::Ptr byte_image = mve::image::crop(
       view_image, width, height, min_x, min_y, *math::Vec3uc(255, 0, 255));
-
+  
   mve::FloatImage::Ptr image = mve::image::byte_to_float_image(byte_image);
 
   //  TESTME - bitweeder
