@@ -302,7 +302,7 @@ void textureMesh(
       auto texture_patch = texture_patches[i];
       
       //  FIXME - bitweeder
-      //  This is unused if we only care about generating masks.
+      //  This is a wasted allocation if we only care about generating masks.
       vector<math::Vec3f> patch_adjust_values(
           texture_patch->get_faces().size() * 3, math::Vec3f(0.0f));
 

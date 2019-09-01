@@ -179,6 +179,10 @@ TexturePatches prepare_patches(
   return nrv;
 }
 
+/**
+  @brief Generate a scaled texture atlas guaranteed to fit within a single page
+  sized to the supplied bounds.
+*/
 void generate_capped_texture_atlas(
     TexturePatches* orig_texture_patches,
     Settings const& settings,
@@ -205,7 +209,12 @@ void generate_capped_texture_atlas(
   //  a useful value. Note that it is not feasible to be precise, as
   //  complications ensue depending on the relative number of small charts,
   //  the size of the chart borders, the packing algorithm being used, and
-  //  possibly the shape of the charts.
+  //  possibly the shape of the charts, but mostly because the atlas generation
+  //  algorithm is non-deterministic and we don’t cache our intermediate
+  //  stages. A -lot- less work could be done here with sigificant refactoring
+  //  such that only the AABB bounds for each chart are generated for the
+  //  purpose of packing, and then we do the final image transfers/scaling once
+  //  we’ve settled on a layout.
   double scaling = 1.0;
   std::size_t iterations = 0;
 
@@ -259,7 +268,6 @@ void generate_capped_texture_atlas(
         //  Generate a deep copy of the original patch.
         auto patch = TexturePatch::create(texture_patches[i]);
 
-//        patch->rescale_manually(scaling);
         patch->rescale(scaling);
 
         auto& tc = patch->get_texcoords();
