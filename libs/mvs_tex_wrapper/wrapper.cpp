@@ -312,7 +312,7 @@ void textureMesh(
         //  masks generated for local seam leveling.
         texture_patch->adjust_colors(patch_adjust_values, true);
       } else {
-         texture_patch->adjust_colors(patch_adjust_values);
+        texture_patch->adjust_colors(patch_adjust_values);
       }
       
       texture_patch_counter.inc();
