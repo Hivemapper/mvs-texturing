@@ -520,8 +520,8 @@ void TexturePatch::adjust_colors(
     
     min_x = std::max (0, min_x);
     min_y = std::max (0, min_y);
-    max_x = std::min (get_width(), min_x);
-    max_y = std::min (get_height(), min_y);
+    max_x = std::min (get_width(), max_x);
+    max_y = std::min (get_height(), max_y);
 
     for (int y = min_y; y < max_y; ++y) {
       for (int x = min_x; x < max_x; ++x) {
