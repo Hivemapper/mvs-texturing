@@ -190,7 +190,7 @@ void generate_capped_texture_atlas(
     uint max_atlas_dim,
     const std::vector<math::Vec3f>& vertices,
     const std::vector<uint>& faces) {
-  std::cout << "generate_capped_texture_atlas beginning" <<std::endl;
+  std::cout << "generate_capped_texture_atlas beginning" << std::endl;
 
 //  std::cout << "max_atlas_dim: " << max_atlas_dim << std::endl;
 //  max_atlas_dim = 16 * 1024;
@@ -352,7 +352,7 @@ void generate_capped_texture_atlas(
     
     if ((scaling < 0.01) || (iterations >= 10)) {
       std::cout << "Unable to complete atlas page at all" << std::endl;
-      return;
+      break;
     }
   }
 }
@@ -363,7 +363,7 @@ void generate_texture_atlases(
     TextureAtlases* texture_atlases,
     const std::vector<math::Vec3f>& vertices,
     const std::vector<uint>& faces) {
-  std::cout << "generate_texture_atlases beginning" <<std::endl;
+  std::cout << "generate_texture_atlases beginning" << std::endl;
 
   auto texture_patches = prepare_patches(orig_texture_patches, settings);
   auto const total_num_patches = texture_patches.size();
