@@ -138,10 +138,10 @@ TexturePatch::TexturePatch(
 */
 math::Vec2f scale_texcoord(
     math::Vec2f const& tc,
-    int old_width,
-    int old_height,
-    int new_width,
-    int new_height);
+    int old_width_i,
+    int old_height_i,
+    int new_width_i,
+    int new_height_i);
 math::Vec2f scale_texcoord(
     math::Vec2f const& tc,
     int old_width_i,
@@ -160,8 +160,42 @@ math::Vec2f scale_texcoord(
 
   auto x = (tc[0] - offset) * x_scale + offset;
   auto y = (tc[1] - offset) * y_scale + offset;
+  auto clamp = [](auto v, auto min_v, auto max_v) {
+    return (v < min_v) ? min_v : ((v > max_v) ? max_v : v);
+  };
 
-  nrv = {x, y};
+  auto adj_x = clamp(x, offset, new_width_i - offset);
+  auto adj_y = clamp(y, offset, new_height_i - offset);
+  
+  #define HM_ASSERT(test_) \
+    if (!(test_)) {\
+      std::cout << "clamped: " << #test_ << std::endl; \
+      std::cout \
+      << "old: (" \
+      << old_width_i << ", " \
+      << old_height_i << ")" \
+      << ", new: (" \
+      << new_width_i << ", " \
+      << new_height_i << ")" \
+      << ", offset: " << offset \
+      << ", tc: (" \
+      << tc[0] << ", " \
+      << tc[1] << ")" \
+      << ", calc: (" \
+      << x << ", " \
+      << y << ")" \
+      << ", adj: (" \
+      << adj_x << ", " \
+      << adj_y << ")" \
+      << std::endl; \
+    }
+  
+  HM_ASSERT(x == adj_x);
+  HM_ASSERT(y == adj_y);
+
+  nrv = {adj_x, adj_y};
+  
+  #undef HM_ASSERT
 
   return nrv;
 }
@@ -458,10 +492,10 @@ void TexturePatch::adjust_colors(
     }
 
     auto aabb = tri.get_aabb();
-    int const min_x = static_cast<int>(std::floor(aabb.min_x)) - texture_patch_border;
-    int const min_y = static_cast<int>(std::floor(aabb.min_y)) - texture_patch_border;
-    int const max_x = static_cast<int>(std::ceil(aabb.max_x)) + texture_patch_border;
-    int const max_y = static_cast<int>(std::ceil(aabb.max_y)) + texture_patch_border;
+    int min_x = static_cast<int>(std::floor(aabb.min_x)) - texture_patch_border;
+    int min_y = static_cast<int>(std::floor(aabb.min_y)) - texture_patch_border;
+    int max_x = static_cast<int>(std::ceil(aabb.max_x)) + texture_patch_border;
+    int max_y = static_cast<int>(std::ceil(aabb.max_y)) + texture_patch_border;
 
     #define HM_ASSERT(test_) \
       if (!(test_)) {\
@@ -477,13 +511,17 @@ void TexturePatch::adjust_colors(
         << get_width() << ", " \
         << get_height() << ")" \
         << std::endl; \
-        assert(test_); \
       }
 
     HM_ASSERT(0 <= min_x);
     HM_ASSERT(0 <= min_y);
     HM_ASSERT(max_x <= get_width());
     HM_ASSERT(max_y <= get_height());
+    
+    min_x = std::max (0, min_x);
+    min_y = std::max (0, min_y);
+    max_x = std::min (get_width(), max_x);
+    max_y = std::min (get_height(), max_y);
 
     for (int y = min_y; y < max_y; ++y) {
       for (int x = min_x; x < max_x; ++x) {
@@ -493,7 +531,7 @@ void TexturePatch::adjust_colors(
         if (inside) {
           HM_ASSERT(x != 0);
           HM_ASSERT(y != 0);
-
+          
           if (!only_regenerate_masks) {
             for (int c = 0; c < num_channels; ++c) {
               iadjust_values->at(x, y, c) = math::interpolate(
