@@ -85,6 +85,7 @@ void view_selection(
   }
 
   mapmap::StopWhenReturnsDiminish<cost_t, simd_w> terminate(5, 0.01);
+  mapmap::StopAfterIterations<cost_t, simd_w> terminate_finite(1, true, true, true);
   std::vector<mapmap::_iv_st<cost_t, simd_w>> solution;
 
   auto display = [](const mapmap::luint_t time_ms,
@@ -100,7 +101,12 @@ void view_selection(
     solver.set_unary(i, &unaries[i]);
   solver.set_pairwise(&pairwise);
   solver.set_logging_callback(display);
-  solver.set_termination_criterion(&terminate);
+  /* mapMap solver has a termination bug for graphs with 0 edges */
+  if (mgraph.num_edges() > 0) {
+    solver.set_termination_criterion(&terminate);
+  } else {
+    solver.set_termination_criterion(&terminate_finite);
+  }
 
   /* Pass configuration arguments (optional) for solve. */
   mapmap::mapMAP_control ctr;
