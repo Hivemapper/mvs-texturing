@@ -334,20 +334,31 @@ void generate_capped_texture_atlas(
         Finally, if the maximum allowable texture size is simply too small,
         we’ll effectively fail no matter what we do.
       */
+      double scaling_adj = 1.0;
+
       if ((actual_occupied_area + expected_occupied_area)
           < atlas_page_ests.occupied_area) {
         std::cout << "scaling branch 1" << std::endl;
 
-        scaling *= std::sqrt(
+        scaling_adj = std::sqrt(
             static_cast<double>(actual_occupied_area + expected_occupied_area)
             / static_cast<double>(atlas_page_ests.occupied_area));
       } else {
         std::cout << "scaling branch 2" << std::endl;
 
-        scaling *= std::sqrt(
+        scaling_adj = std::sqrt(
             static_cast<double>(atlas_page_ests.occupied_area
             / static_cast<double>(actual_occupied_area + expected_occupied_area)));
       }
+
+      //  SEEME - bitweeder
+      //  This is a simple heuristic to get “meaningful” scaling done every
+      //  iteration. Adjust as needed.
+      if (scaling_adj > 0.99) {
+        scaling_adj = 0.99;
+      }
+
+      scaling *= scaling_adj;
     }
     
     if ((scaling < 0.01) || (iterations >= 10)) {
