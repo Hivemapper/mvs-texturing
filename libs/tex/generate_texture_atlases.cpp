@@ -361,7 +361,12 @@ void generate_capped_texture_atlas(
       scaling *= scaling_adj;
     }
     
-    if ((scaling < 0.01) || (iterations >= 10)) {
+    if (iterations == 10) {
+      std::cout << "Encountered a recalcitrant texture atlas! Taking extreme measures!" << std::endl;
+      scaling *= .666;
+    }
+
+    if ((scaling < 0.01) || (iterations >= 11)) {
       std::cout << "Unable to complete atlas page at all" << std::endl;
       break;
     }
