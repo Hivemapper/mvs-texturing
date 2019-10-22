@@ -76,7 +76,7 @@ void textureMesh(
     util::fs::mkdir(tmp_dir.c_str());
   }
 
-  std::cout << "Load and prepare mesh: " << std::endl;
+  std::cout << "Load and prepare mesh: " << in_mesh << std::endl;
 
   mve::TriangleMesh::Ptr mesh {};
 
