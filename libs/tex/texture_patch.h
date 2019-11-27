@@ -73,7 +73,8 @@ public:
   void adjust_colors(
       std::vector<math::Vec3f> const& adjust_values,
       bool only_regenerate_masks = false,
-      int num_channels = 3);
+      int num_channels = 3,
+      std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors = nullptr);
 
   math::Vec3f get_pixel_value(math::Vec2f pixel) const;
   std::vector<float> get_pixel_value_n(math::Vec2f pixel, int num_channels)
@@ -83,9 +84,11 @@ public:
   void set_pixel_value(math::Vec2i pixel, const std::vector<float>* color);
   void set_pixel_object_class_value(
       math::Vec2i pixel,
-      const std::vector<float>* color);
+      const std::vector<float>* color,
+      std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors = nullptr);
   static math::Vec3f compute_object_class_color(
-      const std::vector<float>* color);
+      const std::vector<float>* color,
+      std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors = nullptr);
 
   bool valid_pixel(math::Vec2i pixel) const;
   bool valid_pixel(math::Vec2f pixel) const;

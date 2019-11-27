@@ -125,7 +125,8 @@ void local_seam_leveling_n(
     VertexProjectionInfos const& vertex_projection_infos,
     TexturePatches* texture_patches,
     int num_texture_channels,
-    TexturePatches* texture_object_class_patches = nullptr);
+    TexturePatches* texture_object_class_patches = nullptr,
+    std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors = nullptr);
 
 void generate_texture_atlases(
     TexturePatches * orig_texture_patches,

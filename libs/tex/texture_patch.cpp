@@ -461,7 +461,8 @@ void TexturePatch::expose_validity_mask() {
 void TexturePatch::adjust_colors(
     std::vector<math::Vec3f> const& adjust_values,
     bool only_regenerate_masks,
-    int num_channels) {
+    int num_channels,
+    std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors) {
   assert(!!blending_mask);
   assert(!!validity_mask);
 
@@ -608,7 +609,7 @@ void TexturePatch::adjust_colors(
             sub_color += iadjust_values->at(i);
           }
 
-          auto color = compute_object_class_color(&raw_color);
+          auto color = compute_object_class_color(&raw_color, texture_atlas_colors);
 
           std::copy(color.begin(), color.end(), &image->at(i, 0));
         } else {
@@ -733,60 +734,80 @@ void TexturePatch::set_pixel_value(
   blending_mask->at(pixel[0], pixel[1], 0) = 128;
 }
 
-// TODO dwh: pass in an object to color mapping structure
 math::Vec3f TexturePatch::compute_object_class_color(
-    const std::vector<float>* color) {
+    const std::vector<float>* color,
+    std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors) {
   // TODO dwh: remove hard-coded number of colors=3
   auto num_colors = std::min(static_cast<int>(color->size()), 3);
   long arg_max = std::distance(
       color->begin() + num_colors,
       std::max_element(color->begin() + num_colors, color->end()));
   math::Vec3f final_class_color(0, 0, 0);
-  // TODO !!! map colors from passed argument to method
-  // TODO scale by value?
-  //    REDUCE_MAP = {0: (0, 0, 0), 1: (255, 0, 0), 2: (0, 255, 0), 3: (205,
-  //    133, 63), 4: (255, 255, 0), 5: (255, 255, 255), 6: (0, 0, 255)}
-  switch (arg_max) {
-    case 0: {
-      math::Vec3f class_color(0.f, 0.f, 0.f);
+
+  if (texture_atlas_colors) {
+    auto color_vec = (*texture_atlas_colors)[arg_max];
+//    std::cout << "Color for class " << arg_max << " is " << static_cast<int>(color_vec[0]) << ", " << static_cast<int>(color_vec[1]) << ", " << static_cast<int>(color_vec[2]) << std::endl;
+    if (color_vec.size() == 3) {
+      math::Vec3f class_color(static_cast<float>(color_vec[0]) / 255.f, static_cast<float>(color_vec[1]) / 255.f, static_cast<float>(color_vec[2]) / 255.f);
       final_class_color = class_color;
-      break;
+    } else {
+      std::cout << "ERROR!! Bad class color from color vector--setting color to default" << std::endl;
     }
-    case 1: {
-      math::Vec3f class_color(1.f, 0.f, 0.f);
-      final_class_color = class_color;
-      break;
-    }
-    case 2: {
-      math::Vec3f class_color(0.f, 1.f, 0.f);
-      final_class_color = class_color;
-      break;
-    }
-    case 3: {  // TODO divide these out???
-      math::Vec3f class_color(205.f / 255.f, 133.f / 255.f, 63.f / 255.f);
-      final_class_color = class_color;
-      break;
-    }
-    case 4: {
-      math::Vec3f class_color(1.f, 1.f, 0.f);
-      final_class_color = class_color;
-      break;
-    }
-    case 5: {
-      math::Vec3f class_color(1.f, 1.f, 1.f);
-      final_class_color = class_color;
-      break;
-    }
-    case 6: {
-      math::Vec3f class_color(0.f, 0.f, 1.f);
-      final_class_color = class_color;
-      break;
-    }
-    default: {
-      math::Vec3f class_color(0.f, 0.f, 0.f);
-      final_class_color = class_color;
-      std::cout << "ERROR!! Bad class from " << color << " is " << arg_max
-                << std::endl;
+    return final_class_color;
+  } else {
+    // Old 7-class is fallback if we don't have texture atlas color info
+    //    REDUCE_MAP = {0: (0, 0, 0), 1: (255, 0, 0), 2: (0, 255, 0), 3: (205,
+    //    133, 63), 4: (255, 255, 0), 5: (255, 255, 255), 6: (0, 0, 255)}
+    switch (arg_max) {
+      case 0: {
+        math::Vec3f class_color(0.f, 0.f, 0.f);
+        final_class_color = class_color;
+        break;
+      }
+      case 1: {
+        math::Vec3f class_color(1.f, 0.f, 0.f);
+        final_class_color = class_color;
+        break;
+      }
+      case 2: {
+        math::Vec3f class_color(0.f, 1.f, 0.f);
+        final_class_color = class_color;
+        break;
+      }
+      case 3: {
+        math::Vec3f class_color(205.f / 255.f, 133.f / 255.f, 63.f / 255.f);
+        final_class_color = class_color;
+        break;
+      }
+      case 4: {
+        math::Vec3f class_color(1.f, 1.f, 0.f);
+        final_class_color = class_color;
+        break;
+      }
+      case 5: {
+        math::Vec3f class_color(1.f, 1.f, 1.f);
+        final_class_color = class_color;
+        break;
+      }
+      case 6: {
+        math::Vec3f class_color(0.f, 0.f, 1.f);
+        final_class_color = class_color;
+        break;
+      }
+      default: {
+        math::Vec3f class_color(0.f, 0.f, 0.f);
+        final_class_color = class_color;
+        std::cout << "ERROR!! Bad class " << arg_max << " given raw channels ";
+        for (auto pcolor : *color) {
+          std::cout << pcolor << " ";
+        }
+        std::cout << std::endl;
+        std::cout << " setting to default color ";
+        for (auto fcolor : final_class_color){
+          std::cout << fcolor << " ";
+        }
+        std::cout << std::endl;
+      }
     }
   }
   return final_class_color;  // * color[arg_max];
@@ -794,12 +815,13 @@ math::Vec3f TexturePatch::compute_object_class_color(
 
 void TexturePatch::set_pixel_object_class_value(
     math::Vec2i pixel,
-    const std::vector<float>* color) {
+    const std::vector<float>* color,
+    std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors) {
   assert(valid_pixel(pixel));
+
   math::Vec3f final_class_color =
-      TexturePatch::compute_object_class_color(color);
-  //    std::cout << "Class from " << color << " is " << arg_max << " and class
-  //    color is " << final_class_color << std::endl;
+      TexturePatch::compute_object_class_color(color, texture_atlas_colors);
+
   set_pixel_value(pixel, final_class_color);
 }
 
