@@ -137,7 +137,8 @@ void draw_line_n(
     std::vector<std::vector<float>> const& edge_color,
     TexturePatch::Ptr texture_patch,
     bool set_object_classes,
-    int num_texture_channels) {
+    int num_texture_channels,
+    std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors) {
   /* http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm */
 
   int x0 = std::floor(p1[0] + 0.5f);
@@ -195,7 +196,7 @@ void draw_line_n(
     }
 
     if (set_object_classes) {
-      texture_patch->set_pixel_object_class_value(pixel, &color);
+      texture_patch->set_pixel_object_class_value(pixel, &color, texture_atlas_colors);
     } else {
       texture_patch->set_pixel_value(pixel, &color);
     }
@@ -359,7 +360,8 @@ void local_seam_leveling_n(
     VertexProjectionInfos const& vertex_projection_infos,
     std::vector<TexturePatch::Ptr>* texture_patches,
     int num_texture_channels,
-    std::vector<TexturePatch::Ptr>* texture_object_class_patches) {
+    std::vector<TexturePatch::Ptr>* texture_object_class_patches,
+    std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors) {
   std::size_t const num_vertices = vertex_projection_infos.size();
   std::vector<std::vector<float>> vertex_colors(num_vertices);
   std::vector<std::vector<std::vector<float>>> edge_colors {};
@@ -464,7 +466,7 @@ void local_seam_leveling_n(
       texture_patch->set_pixel_value(pixel.pos, pixel.color);
       if (texture_object_class_patch != nullptr) {
         texture_object_class_patch->set_pixel_object_class_value(
-            pixel.pos, pixel.color);
+            pixel.pos, pixel.color, texture_atlas_colors);
       }
     }
 
@@ -477,7 +479,8 @@ void local_seam_leveling_n(
           *line.color,
           texture_patch,
           set_object_classes,
-          num_texture_channels);
+          num_texture_channels,
+          texture_atlas_colors);
       if (texture_object_class_patch != nullptr) {
         set_object_classes = true;
         draw_line_n(
@@ -486,7 +489,8 @@ void local_seam_leveling_n(
             *line.color,
             texture_object_class_patch,
             set_object_classes,
-            num_texture_channels);
+            num_texture_channels,
+            texture_atlas_colors);
       }
     }
     texture_patch_counter.progress<SIMPLE>();
