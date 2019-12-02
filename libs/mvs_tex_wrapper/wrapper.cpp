@@ -35,8 +35,14 @@ void textureMesh(
     uint atlas_size,
     float* hidden_face_proportion,
     std::shared_ptr<std::vector<std::vector<uint8_t>>> segmentation_classes,
-    bool do_texture_atlas) {
+    std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors) {
   bool write_intermediate_results = false;
+  bool do_texture_atlas = true;
+  if (segmentation_classes) {
+    if (!texture_atlas_colors) {
+      do_texture_atlas = false;
+    }
+  }
   // the number of channels in the image
   int num_texture_channels = 0;
   // the number of image channels that describe color -- additional channels
@@ -329,7 +335,7 @@ void textureMesh(
       texture_object_class_patches.emplace_back(texture_patch->duplicate());
     }
 
-    if (do_texture_atlas) {
+    if (do_texture_atlas && texture_atlas_colors) {
       // we need this if doing an obj texture atlas
       // This method creates a synthetic color image where each rgb color
       // represents a different class
@@ -343,13 +349,13 @@ void textureMesh(
             math::Vec3f(0.0f));
 
         texture_object_class_patch->adjust_colors(
-            patch_adjust_values, num_texture_channels);
+            patch_adjust_values, false, num_texture_channels, texture_atlas_colors);
       }
     }
 
     // For n-channel, do the following on all channels including classes
     if (settings.local_seam_leveling) {
-      if (do_texture_atlas) {
+      if (do_texture_atlas && texture_atlas_colors) {
         std::cout << "Running local seam leveling with classes:" << std::endl;
 
         // This function call does seam leveling on everything including rgb
@@ -360,7 +366,8 @@ void textureMesh(
             vertex_projection_infos,
             &texture_patches,
             num_texture_channels,
-            &texture_object_class_patches);
+            &texture_object_class_patches,
+            texture_atlas_colors);
       } else {
         // if we are not outputting an obj texture atlas file the following is
         // a better option than the above: This function call ignores rgb
@@ -374,7 +381,9 @@ void textureMesh(
             mesh,
             vertex_projection_infos,
             &texture_patches,
-            num_texture_channels);
+            num_texture_channels,
+            nullptr,
+            texture_atlas_colors);
       }
     }
 
@@ -563,11 +572,8 @@ void textureMesh(
         timer.measure("Saving");
       }
 
-      if (num_texture_channels > num_colors) {
-        // TODO dwh: note that this requires a color mapping for each class
-        // which will change with different models but is currently hard-coded
-        // --either make this section optional with an ability to pass in a
-        // color mapping (nice for testing) or remove this
+      if (num_texture_channels > num_colors && texture_atlas_colors) {
+        // only do this if doing segmentation and have a texture color vector
         {
           //  Generate texture atlases for object classes.
           std::cout << "Generating object class texture atlases:" << std::endl;

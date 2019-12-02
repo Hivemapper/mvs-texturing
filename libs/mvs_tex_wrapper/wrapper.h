@@ -46,7 +46,7 @@ void textureMesh(
     uint atlas_size,
     float* hidden_face_proportion,
     std::shared_ptr<std::vector<std::vector<uint8_t>>> segmentation_classes,
-    bool do_texture_atlas);
+    std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors = nullptr);
 //  if segmentation classes are to be set (i.e. not a nullptr),
 //  then setting this to false stops method after setting
 //  segmentation classes to avoid wasting time if textures are not
