@@ -1,7 +1,7 @@
 externalproject_add(ext_mapmap
     PREFIX          ext_mapmap
     GIT_REPOSITORY  https://github.com/dthuerck/mapmap_cpu.git
-    GIT_TAG         55cd9374f6467263f2741474a5e78e68417d7465
+    GIT_TAG         6ea08714e1865fe73afff8892c7136cd1fe1e6f3
     UPDATE_COMMAND  ""
     SOURCE_DIR      ${CMAKE_SOURCE_DIR}/elibs/mapmap
     CONFIGURE_COMMAND ""
@@ -33,7 +33,7 @@ externalproject_add(ext_rayint
 externalproject_add(ext_mve
     PREFIX          mve
     GIT_REPOSITORY  https://github.com/Hivemapper/mve.git
-    GIT_TAG         3d588d0fb8a0034a29c8a29ecbf4bc2dd5371d82
+    GIT_TAG         3f62a9b8a26488b9a6eb27e91f578e3a8350f6af
     UPDATE_COMMAND  ""
     SOURCE_DIR      ${CMAKE_SOURCE_DIR}/elibs/mve
     CONFIGURE_COMMAND ""
