@@ -191,7 +191,6 @@ void calculate_face_projection_infos(
         std::size_t face_id = i / 3;
 
         math::Vec3f const& v1 = vertices[faces[i]];
-
         math::Vec3f const& v2 = vertices[faces[i + 1]];
         math::Vec3f const& v3 = vertices[faces[i + 2]];
         math::Vec3f const& face_normal = face_normals[face_id];

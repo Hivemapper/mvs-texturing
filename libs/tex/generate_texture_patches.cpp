@@ -306,8 +306,6 @@ bool fill_hole(
       break;
   }
 
-  // std::cout << " C " <<std::endl;
-
   if (border.size() != num_border_vertices)
     return false;
 
@@ -361,7 +359,6 @@ bool fill_hole(
       length += (v0 - v1).norm();
     }
   }
-  // std::cout << " D " <<std::endl;
 
   typedef Eigen::Triplet<float, int> Triplet;
   std::vector<Triplet, Eigen::aligned_allocator<Triplet>> coeff;
@@ -369,13 +366,10 @@ bool fill_hole(
 
   Eigen::VectorXf xx(matrix_size), xy(matrix_size);
 
-  // std::cout << " D2 " <<std::endl;
 
   if (matrix_size != 0) {
-    // std::cout << " D2 - aa" <<std::endl;
     Eigen::VectorXf bx(matrix_size);
     Eigen::VectorXf by(matrix_size);
-    // std::cout << " D2 - a" <<std::endl;
     for (std::size_t j = 0; j < num_vertices; ++j) {
       if (is_border[j])
         continue;
@@ -438,23 +432,15 @@ bool fill_hole(
     }
 
     typedef Eigen::SparseMatrix<float> SpMat;
-    // std::cout << " D2 - b" <<std::endl;
     SpMat A(matrix_size, matrix_size);
     A.setFromTriplets(coeff.begin(), coeff.end());
-    // std::cout << " D2 - c " <<std::endl;
 
     Eigen::SparseLU<SpMat> solver;
-    // std::cout << " D2 - d " <<std::endl;
     solver.analyzePattern(A);
-    // std::cout << " D2 - d1 " <<std::endl;
     solver.factorize(A);
-    // std::cout << " D2 - d2 " <<std::endl;
     xx = solver.solve(bx);
     xy = solver.solve(by);
-    // std::cout << " D2 - e " <<std::endl;
   }
-
-  // std::cout << " E " <<std::endl;
 
   float const max_hole_patch_size = MAX_HOLE_PATCH_SIZE;
   int image_size =
@@ -605,20 +591,16 @@ void generate_texture_patches(
     }
   }
   
-  // std::cout << "Merging... " << std::endl;
   merge_vertex_projection_infos(vertex_projection_infos);
-  // std::cout << "Merged " << std::endl;
   {
     std::vector<std::size_t> unseen_faces {};
     std::vector<std::vector<std::size_t>> subgraphs {};
 
     graph.get_subgraphs(0, &subgraphs);
 
-    // std::cout << "filling holes " << subgraphs.size() << std::endl;
-    // #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < subgraphs.size(); ++i) {
       std::vector<std::size_t> const& subgraph = subgraphs[i];
-      // std::cout << i << std::endl;
       bool success = false;
  
       if (settings.hole_filling) {
@@ -632,21 +614,16 @@ void generate_texture_patches(
       }
 
       if (success) {
-        // std::cout << "\ty" << std::endl;
         num_patches += 1;
       } else {
-        // std::cout << "\tn" << std::endl;
         if (settings.keep_unseen_faces) {
           //#pragma omp critical
           unseen_faces.insert(
               unseen_faces.end(), subgraph.begin(), subgraph.end());
         }
       }
-      // std::cout << i << " complete" << std::endl;
     }
 
-    // std::cout << "creating patches" << std::endl;
-    // std::cout << "creating patches" << std::endl;
     if (!unseen_faces.empty()) {
       mve::FloatImage::Ptr image = mve::FloatImage::create(3, 3, 3);
       std::vector<math::Vec2f> texcoords {};

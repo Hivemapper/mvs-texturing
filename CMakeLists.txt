@@ -46,8 +46,10 @@ include_directories(SYSTEM
     ${CMAKE_SOURCE_DIR}/elibs/mve/libs
     #${CMAKE_SOURCE_DIR}/elibs/eigen
     ${CMAKE_SOURCE_DIR}/elibs/mapmap/
+    ${CMAKE_SOURCE_DIR}/elibs/mapmap/ext/dset
     ${CMAKE_SOURCE_DIR}/elibs/mapmap/mapmap
 )
+
 
 include_directories(
     libs
