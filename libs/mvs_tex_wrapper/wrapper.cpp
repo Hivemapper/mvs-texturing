@@ -154,6 +154,11 @@ void textureMesh(
   settings.expose_blending_mask = texture_settings.do_expose_blending_mask;
   settings.expose_validity_mask = texture_settings.do_expose_validity_mask;
   settings.scale_if_needed = texture_settings.do_scale_if_needed;
+
+  settings.texture_scaling_adj = texture_settings.texture_scaling_adj;
+  settings.texture_scaling_backstop = texture_settings.texture_scaling_backstop;
+  settings.texture_scaling_min = texture_settings.texture_scaling_min;
+  settings.texture_scaling_max_iterations = texture_settings.texture_scaling_max_iterations;
   
   std::cout << "dilate_padding_pixels: " << settings.dilate_padding_pixels << std::endl;
   std::cout << "highlight_padding_pixels: " << settings.highlight_padding_pixels << std::endl;

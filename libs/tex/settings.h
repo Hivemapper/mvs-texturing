@@ -91,6 +91,11 @@ struct Settings {
   bool expose_blending_mask = false;
   bool expose_validity_mask = false;
   bool scale_if_needed = false;
+
+  double texture_scaling_adj = 0.99;
+  double texture_scaling_backstop = 0.666;
+  double texture_scaling_min = 0.01;
+  std::size_t texture_scaling_max_iterations = 10;
 };
 
 TEX_NAMESPACE_END
