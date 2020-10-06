@@ -354,19 +354,17 @@ void generate_capped_texture_atlas(
       //  SEEME - bitweeder
       //  This is a simple heuristic to get “meaningful” scaling done every
       //  iteration. Adjust as needed.
-      if (scaling_adj > 0.99) {
-        scaling_adj = 0.99;
-      }
-
+      scaling_adj = std::min(scaling_adj, settings.texture_scaling_adj);
       scaling *= scaling_adj;
     }
     
-    if (iterations == 10) {
+    if (iterations == settings.texture_scaling_max_iterations) {
       std::cout << "Encountered a recalcitrant texture atlas! Taking extreme measures!" << std::endl;
-      scaling *= .666;
+      scaling *= settings.texture_scaling_backstop;
     }
 
-    if ((scaling < 0.01) || (iterations >= 11)) {
+    if ((scaling < settings.texture_scaling_min)
+        || (iterations > settings.texture_scaling_max_iterations)) {
       std::cout << "Unable to complete atlas page at all" << std::endl;
       break;
     }
