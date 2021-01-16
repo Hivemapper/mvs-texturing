@@ -32,6 +32,7 @@
 //  x or y dimension, but it’s unclear where this limitation comes from.
 //  PREF_TEXTURE_SIZE is even more mysterious.
 #define MAX_TEXTURE_SIZE (16 * 1024)
+#define MAX_SEGMENTATION_TEXTURE_SIZE (4 * 1024)
 #define PREF_TEXTURE_SIZE (16 * 1024)
 #define MIN_TEXTURE_SIZE (256)
 
@@ -193,7 +194,7 @@ void generate_capped_texture_atlas(
   std::cout << "generate_capped_texture_atlas beginning" << std::endl;
 
 //  std::cout << "max_atlas_dim: " << max_atlas_dim << std::endl;
-//  max_atlas_dim = 16 * 1024;
+//  max_atlas_dim = MAX_TEXTURE_SIZE;
 //  std::cout << "max_atlas_dim: " << max_atlas_dim << std::endl;
 
   auto texture_patches = prepare_patches(orig_texture_patches, settings);
