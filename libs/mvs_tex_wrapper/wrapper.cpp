@@ -51,7 +51,7 @@ void textureMesh(
   int num_colors = 3;
 
   if (atlas_size == 0) {
-    atlas_size = MAX_SEGMENTATION_TEXTURE_SIZE;
+    atlas_size = tex::MAX_SEGMENTATION_TEXTURE_SIZE;
   }
 //  atlas_size = MAX_TEXTURE_SIZE;
 
