@@ -24,18 +24,6 @@
 #include "texture_patch.h"
 #include "texturing.h"
 
-//  FIXME - bitweeder
-//  It’s unclear what the significance of these magic numbers is supposed to
-//  be, e.g., “maximum dimension size allowed for a POT texture, as imposed by
-//  the graphics API”. In context, the bounding rect of a given texture chart
-//  plus its padding is not allowed to exceed MAX_TEXTURE_SIZE in either the
-//  x or y dimension, but it’s unclear where this limitation comes from.
-//  PREF_TEXTURE_SIZE is even more mysterious.
-#define MAX_TEXTURE_SIZE (16 * 1024)
-#define MAX_SEGMENTATION_TEXTURE_SIZE (4 * 1024)
-#define PREF_TEXTURE_SIZE (16 * 1024)
-#define MIN_TEXTURE_SIZE (256)
-
 TEX_NAMESPACE_BEGIN
 
 /**
