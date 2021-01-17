@@ -39,6 +39,18 @@ using DataCosts = SparseTable<std::uint32_t, std::uint16_t, float>;
 using VertexProjectionInfos = std::vector<std::vector<VertexProjectionInfo>>;
 using FaceProjectionInfos = std::vector<std::vector<FaceProjectionInfo>>;
 
+//  FIXME - bitweeder
+//  It’s unclear what the significance of these magic numbers is supposed to
+//  be, e.g., “maximum dimension size allowed for a POT texture, as imposed by
+//  the graphics API”. In context, the bounding rect of a given texture chart
+//  plus its padding is not allowed to exceed MAX_TEXTURE_SIZE in either the
+//  x or y dimension, but it’s unclear where this limitation comes from.
+//  PREF_TEXTURE_SIZE is even more mysterious.
+constexpr int MAX_TEXTURE_SIZE = 16 * 1024;
+constexpr int MAX_SEGMENTATION_TEXTURE_SIZE = 4 * 1024;
+constexpr int PREF_TEXTURE_SIZE = 16 * 1024;
+constexpr int MIN_TEXTURE_SIZE = 256;
+
 /**
  * prepares the mesh for texturing
  *  -removes duplicated faces
