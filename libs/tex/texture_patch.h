@@ -18,7 +18,7 @@
 #include "poisson_blending.h"
 #include "tri.h"
 
-int const texture_patch_border = 1;
+int const texture_patch_border = 0;
 
 /**
  * Class representing a texture patch.
