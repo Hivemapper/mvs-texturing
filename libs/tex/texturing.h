@@ -47,8 +47,8 @@ using FaceProjectionInfos = std::vector<std::vector<FaceProjectionInfo>>;
 //  x or y dimension, but it’s unclear where this limitation comes from.
 //  PREF_TEXTURE_SIZE is even more mysterious.
 constexpr int MAX_TEXTURE_SIZE = 16 * 1024;
-constexpr int MAX_SEGMENTATION_TEXTURE_SIZE = 8 * 1024;
-constexpr int PREF_TEXTURE_SIZE = 8 * 1024;
+constexpr int MAX_SEGMENTATION_TEXTURE_SIZE = 4 * 1024;
+constexpr int PREF_TEXTURE_SIZE = 16 * 1024;
 constexpr int MIN_TEXTURE_SIZE = 256;
 
 /**
