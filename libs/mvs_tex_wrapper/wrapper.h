@@ -45,14 +45,14 @@ struct TextureSettings {
   bool do_use_gmi_term = false;  // GMI vs area
   bool do_gauss_clamping = true; // one or other true, not both. Photometric consistency type
   bool do_gauss_damping = false;
-  bool do_geometric_visibility_test = false;
+  bool do_geometric_visibility_test = true;
   bool do_gamma_tone_mapping = true;
   bool do_global_seam_leveling = false;
   bool do_local_seam_leveling = true;
   bool do_hole_filling = false;
   bool do_keep_unseen_faces = true;
   
-  bool do_dilate_padding_pixels = true;
+  bool do_dilate_padding_pixels = false;
   bool do_highlight_padding_pixels = false;
   bool do_expose_blending_mask = false;
   bool do_expose_validity_mask = false;
