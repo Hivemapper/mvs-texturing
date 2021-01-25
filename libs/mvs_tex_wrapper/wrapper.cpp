@@ -36,7 +36,7 @@ void textureMesh(
     float* hidden_face_proportion,
     std::shared_ptr<std::vector<std::vector<uint8_t>>> segmentation_classes,
     std::shared_ptr<std::vector<std::vector<uint8_t>>> texture_atlas_colors) {
-  bool write_intermediate_results = false;
+  bool write_intermediate_results = true;
   bool do_texture_atlas = true;
   if (segmentation_classes) {
     if (!texture_atlas_colors) {

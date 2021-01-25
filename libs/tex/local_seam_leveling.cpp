@@ -344,13 +344,13 @@ void local_seam_leveling(
     if (texture_patch->get_label() != 0) {
       texture_patch->prepare_blending_mask(STRIP_SIZE);
     }
-    //         std::cout << "blend " << i << std::endl;
+             std::cout << "blend " << i << std::endl;
     texture_patch->blend(image);
-    //         std::cout << "release " << i << std::endl;
+             std::cout << "release " << i << std::endl;
     texture_patch->release_blending_mask();
-    //         std::cout << "tic " << i << std::endl;
+             std::cout << "tic " << i << std::endl;
     texture_patch_counter.inc();
-    //         std::cout << "loop " << i << std::endl;
+             std::cout << "loop " << i << std::endl;
   }
 }
 
