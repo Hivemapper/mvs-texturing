@@ -15,7 +15,7 @@
 
 TEX_NAMESPACE_BEGIN
 
-#define STRIP_SIZE 20
+#define STRIP_SIZE 5
 
 math::Vec3f mean_color_of_edge_point(
     std::vector<EdgeProjectionInfo> const& edge_projection_infos,

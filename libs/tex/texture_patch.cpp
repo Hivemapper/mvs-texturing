@@ -898,8 +898,8 @@ void TexturePatch::prepare_blending_mask(std::size_t strip_width) {
       int y = it->second;
 
       for (int j = -1; j <= 1; j++) {
-        for (int i = -1; i <= 1; i++) {
-          int nx = x + i;
+        for (int ii = -1; ii <= 1; ii++) {
+          int nx = x + ii;
           int ny = y + j;
           if (0 <= nx && nx < width && 0 <= ny && ny < height
               && inner_pixel->at(nx, ny, 0) == 255) {

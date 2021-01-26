@@ -77,7 +77,7 @@ struct Settings {
 
   DataTerm data_term = DATA_TERM_GMI;
   SmoothnessTerm smoothness_term = SMOOTHNESS_TERM_POTTS;
-  OutlierRemoval outlier_removal = OUTLIER_REMOVAL_NONE;
+  OutlierRemoval outlier_removal = OUTLIER_REMOVAL_GAUSS_DAMPING;
   ToneMapping tone_mapping = TONE_MAPPING_NONE;
 
   bool geometric_visibility_test = true;
