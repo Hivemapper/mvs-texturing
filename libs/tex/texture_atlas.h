@@ -101,7 +101,7 @@ inline uint compute_local_padding(
   //  It’s excessive to have a border wider than 2 pixels, even with
   //  anisotropic/trilinear filtering. The original logic has been preserved,
   //  but theresult is now hard-coded.
-  return 1;
+  return 2;
 //  return local_padding;
 }
 
