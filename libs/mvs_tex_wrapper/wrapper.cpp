@@ -159,12 +159,20 @@ void textureMesh(
   settings.texture_scaling_backstop = texture_settings.texture_scaling_backstop;
   settings.texture_scaling_min = texture_settings.texture_scaling_min;
   settings.texture_scaling_max_iterations = texture_settings.texture_scaling_max_iterations;
-  
+
+  std::cout << "geometric_visibility_test: " << settings.geometric_visibility_test << std::endl;
+  std::cout << "global_seam_leveling: " << settings.global_seam_leveling << std::endl;
+  std::cout << "local_seam_leveling: " << settings.local_seam_leveling << std::endl;
+  std::cout << "hole_filling: " << settings.hole_filling << std::endl;
+  std::cout << "keep_unseen_faces: " << settings.keep_unseen_faces << std::endl;
+  std::cout << " " << std::endl;
+
   std::cout << "dilate_padding_pixels: " << settings.dilate_padding_pixels << std::endl;
   std::cout << "highlight_padding_pixels: " << settings.highlight_padding_pixels << std::endl;
   std::cout << "expose_blending_mask: " << settings.expose_blending_mask << std::endl;
   std::cout << "expose_validity_mask: " << settings.expose_validity_mask << std::endl;
   std::cout << "scale_if_needed: " << settings.scale_if_needed << std::endl;
+
 
   if (labeling_file.empty()) {
     std::cout << "View selection:" << std::endl;

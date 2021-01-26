@@ -81,16 +81,16 @@ struct Settings {
   ToneMapping tone_mapping = TONE_MAPPING_NONE;
 
   bool geometric_visibility_test = true;
-  bool global_seam_leveling = true;
+  bool global_seam_leveling = false;
   bool local_seam_leveling = true;
-  bool hole_filling = true;
+  bool hole_filling = false;
   bool keep_unseen_faces = false;
   
-  bool dilate_padding_pixels = true;
+  bool dilate_padding_pixels = false;
   bool highlight_padding_pixels = false;
   bool expose_blending_mask = false;
   bool expose_validity_mask = false;
-  bool scale_if_needed = false;
+  bool scale_if_needed = true;
 
   double texture_scaling_adj = 0.99;
   double texture_scaling_backstop = 0.666;
